@@ -3,7 +3,7 @@
 // ÖNEMLİ: Google Apps Script'e giden veri çağrıları (POST) hiçbir zaman
 // önbelleğe alınmaz veya buradan yakalanmaz — her zaman doğrudan ağa gider.
 
-var CACHE_NAME = "vega-takip-v2";
+var CACHE_NAME = "vega-takip-v3";
 var ASSETS = [
   "./",
   "./index.html",
