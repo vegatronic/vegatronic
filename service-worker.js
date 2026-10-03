@@ -3,7 +3,7 @@
 // ÖNEMLİ: Google Apps Script'e giden veri çağrıları (POST) hiçbir zaman
 // önbelleğe alınmaz veya buradan yakalanmaz — her zaman doğrudan ağa gider.
 
-var CACHE_NAME = "vega-takip-v1";
+var CACHE_NAME = "vega-takip-v2";
 var ASSETS = [
   "./",
   "./index.html",
@@ -40,6 +40,24 @@ self.addEventListener("fetch", function (event) {
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Apps Script çağrılarına dokunma
 
+  // Sayfanın kendisi (HTML) her zaman önce ağdan denenir, böylece yeni bir
+  // sürüm yayınlandığında kullanıcı anında görür. Sadece ağ ulaşılamazsa
+  // (çevrimdışı) önbellekteki son sürüme düşer.
+  if (req.mode === "navigate" || (req.headers.get("accept") || "").indexOf("text/html") !== -1) {
+    event.respondWith(
+      fetch(req).then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+        }
+        return res;
+      }).catch(function () { return caches.match(req); })
+    );
+    return;
+  }
+
+  // Diğer statik dosyalar (ikonlar vb.) için: önbellek varsa onu göster,
+  // arkaplanda ağdan güncelle.
   event.respondWith(
     caches.match(req).then(function (cached) {
       var network = fetch(req).then(function (res) {
