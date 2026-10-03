@@ -730,6 +730,13 @@ td.num{color:var(--fg-muted)}
 (function(){
   "use strict";
 
+  // Hangi görünüm o an ekranda — arka plan yenileme döngüleri (20sn) sadece
+  // o an görünen ekran için ağ isteği atar, görünmeyenler atlanır. Böylece
+  // kullanıcı tek bir ekrandayken arka planda aynı anda 3 ayrı Apps Script
+  // çağrısı (siparişler + servis + personel) tetiklenip gereksiz yere
+  // birbirini yavaşlatmaz.
+  var __activeView = "login";
+
   var STATUS = {
     siparis:{label:"Sipariş Alındı", cls:"pill-siparis"},
     uretim:{label:"Üretimde", cls:"pill-uretim"},
@@ -1554,7 +1561,7 @@ td.num{color:var(--fg-muted)}
     }).getOrders();
   }
   loadOrders();
-  setInterval(loadOrders, 20000);
+  setInterval(function(){ if (__activeView==="orders") loadOrders(); }, 20000);
 
   /* ===================== Anasayfa / Modül Yönlendirme ===================== */
 
@@ -1571,7 +1578,16 @@ td.num{color:var(--fg-muted)}
       var tab = document.getElementById("bb-tab-"+v);
       if (tab) tab.classList.toggle("active", v===view);
     });
+    var prevView = __activeView;
+    __activeView = view;
     if (view==="admin") loadAdminUsers();
+    // Bir veri ekranına ilk kez geçildiğinde (veya geri dönüldüğünde) veriyi
+    // hemen tazele; 20sn'lik arka plan döngüsü sadece o ekran açıkken çalışır.
+    if (view!==prevView) {
+      if (view==="orders" && typeof loadOrders==="function") loadOrders();
+      if (view==="service" && typeof loadServiceRecords==="function") loadServiceRecords();
+      if (view==="personnel" && typeof loadPersonnelData==="function") loadPersonnelData();
+    }
   }
   document.getElementById("card-orders").onclick=function(){ showView("orders"); };
   document.getElementById("card-service").onclick=function(){ showView("service"); };
@@ -2312,7 +2328,7 @@ td.num{color:var(--fg-muted)}
     }).getServiceRecords();
   }
   loadServiceRecords();
-  setInterval(loadServiceRecords, 20000);
+  setInterval(function(){ if (__activeView==="service") loadServiceRecords(); }, 20000);
 
   /* ===================== Personel Takibi ===================== */
 
@@ -2762,7 +2778,7 @@ td.num{color:var(--fg-muted)}
     }).getPersonnelData();
   }
   loadPersonnelData();
-  setInterval(loadPersonnelData, 20000);
+  setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
 })();
 </script>
 <script>
