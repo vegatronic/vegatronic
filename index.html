@@ -252,14 +252,14 @@ td.num{color:var(--fg-muted)}
     if(pendingApiUrlPromise) return pendingApiUrlPromise;
     pendingApiUrlPromise = new Promise(function(resolve){
       var overlay = document.createElement("div");
-      overlay.style.cssText = "position:fixed;inset:0;background:#080b10;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:system-ui,sans-serif;padding:20px";
+      overlay.style.cssText = "position:fixed;inset:0;background:linear-gradient(135deg,#0C1526,#162544);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:'Plus Jakarta Sans',Inter,system-ui,-apple-system,sans-serif;padding:20px";
       overlay.innerHTML =
-        '<div style="max-width:440px;width:100%;background:#0e1319;border:1px solid #1b2430;border-radius:10px;padding:22px;color:#e8eef5">'+
-          '<h2 style="margin:0 0 10px;font-size:17px;color:#2fd8ff">Kurulum: Google Sheets Bağlantısı</h2>'+
-          '<p style="font-size:13px;line-height:1.5;color:#9aa7b5;margin:0 0 14px">Bu, bir kere yapılan ayardır. Apps Script projesinde Dağıt → Web uygulaması adresini (…/exec ile biten) aşağıya yapıştır.</p>'+
-          '<input id="vega-api-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;box-sizing:border-box;padding:10px;border-radius:6px;border:1px solid #1b2430;background:#080b10;color:#e8eef5;font-size:13px;margin-bottom:12px">'+
-          '<div id="vega-api-err" style="color:#ff5c7a;font-size:12.5px;margin-bottom:10px;display:none"></div>'+
-          '<button id="vega-api-save" style="width:100%;padding:10px;border-radius:6px;border:none;background:#2fd8ff;color:#06131a;font-weight:600;cursor:pointer;font-size:14px">Kaydet ve Başlat</button>'+
+        '<div style="max-width:440px;width:100%;background:#ffffff;border-radius:16px;padding:28px;color:#16213a;box-shadow:0 24px 60px -16px rgba(12,21,38,.45)">'+
+          '<h2 style="margin:0 0 10px;font-size:18px;font-weight:700;color:#16213a;letter-spacing:-.01em">Kurulum: Google Sheets Bağlantısı</h2>'+
+          '<p style="font-size:13.5px;line-height:1.55;color:#5b6778;margin:0 0 16px">Bu, bir kere yapılan ayardır. Apps Script projesinde Dağıt → Web uygulaması adresini (…/exec ile biten) aşağıya yapıştır.</p>'+
+          '<input id="vega-api-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:9px;border:1.5px solid #e2e6ed;background:#f8f9fb;color:#16213a;font-size:13.5px;font-family:inherit;margin-bottom:12px;outline:none">'+
+          '<div id="vega-api-err" style="color:#d6425c;font-size:12.5px;margin-bottom:10px;display:none"></div>'+
+          '<button id="vega-api-save" style="width:100%;padding:11px;border-radius:9px;border:none;background:#FF6A2B;color:#ffffff;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit">Kaydet ve Başlat</button>'+
         '</div>';
       document.body.appendChild(overlay);
       var input = overlay.querySelector("#vega-api-input");
