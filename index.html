@@ -334,6 +334,7 @@ td.num{color:var(--fg-muted)}
 .admin-user-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)}
 .admin-user-row:last-child{border-bottom:none}
 .admin-user-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;flex-shrink:0}
+.agenda-date-badge{min-width:54px;padding:6px 4px;border-radius:12px;background:var(--accent-bg);color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:11px;line-height:1.35;flex-shrink:0;text-align:center}
 .admin-user-main{flex:1;min-width:0}
 .admin-user-name{font-weight:700;font-size:13.5px}
 .admin-user-sub{font-size:11.5px;color:var(--fg-muted)}
@@ -589,6 +590,23 @@ td.num{color:var(--fg-muted)}
     </div>
   </div>
 
+  <div id="view-agenda" hidden>
+    <div class="topbar">
+      <button class="back-btn" id="btn-home-agenda" type="button"><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Anasayfa</button>
+      <div class="title-block">
+        <h1>Ajanda</h1>
+        <div class="sub">Kişisel Hatırlatmalar</div>
+      </div>
+    </div>
+    <div class="admin-toolbar">
+      <div class="hint" id="agenda-count">—</div>
+      <button class="btn btn-primary" id="btn-new-agenda" type="button">+ Yeni Not</button>
+    </div>
+    <div class="card">
+      <div id="agenda-list"></div>
+    </div>
+  </div>
+
   <div id="view-admin" hidden>
     <div class="topbar">
       <button class="back-btn" id="btn-home-admin" type="button"><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Anasayfa</button>
@@ -600,7 +618,6 @@ td.num{color:var(--fg-muted)}
     <div class="admin-toolbar">
       <div class="hint" id="admin-user-count">—</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" id="btn-my-profile" type="button">Profilim (Ad Soyadımı Değiştir)</button>
         <button class="btn btn-primary" id="btn-new-user" type="button">+ Yeni Kullanıcı</button>
       </div>
     </div>
@@ -754,6 +771,10 @@ td.num{color:var(--fg-muted)}
   <button class="bb-tab disabled" id="bb-tab-stock" type="button" title="Yakında" disabled>
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/></svg></span>
     <div class="bb-tab-label">Stok</div>
+  </button>
+  <button class="bb-tab" id="bb-tab-agenda" type="button" hidden>
+    <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="16" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 2.5v4M16 2.5v4M3.5 9.5h17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="8.3" cy="14" r="1.1" fill="currentColor"/><circle cx="12" cy="14" r="1.1" fill="currentColor"/><circle cx="15.7" cy="14" r="1.1" fill="currentColor"/><circle cx="8.3" cy="17.4" r="1.1" fill="currentColor"/></svg></span>
+    <div class="bb-tab-label">Ajanda</div>
   </button>
   <button class="bb-tab" id="bb-tab-admin" type="button" hidden>
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3.2v5.1c0 4.6-3 8.9-7 10.2-4-1.3-7-5.6-7-10.2V5.2L12 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -1657,21 +1678,27 @@ td.num{color:var(--fg-muted)}
   /* ===================== Anasayfa / Modül Yönlendirme ===================== */
 
   function showView(view){
+    // Yönetim (Admin) sayfasına sadece yönetici yetkisi olan kullanıcılar girebilir.
+    if (view==="admin" && !(currentUser && currentUser.isAdmin)) {
+      view = "home";
+    }
     document.getElementById("view-home").hidden = view!=="home";
     document.getElementById("view-orders").hidden = view!=="orders";
     document.getElementById("view-service").hidden = view!=="service";
     document.getElementById("view-personnel").hidden = view!=="personnel";
+    document.getElementById("view-agenda").hidden = view!=="agenda";
     document.getElementById("view-admin").hidden = view!=="admin";
     document.getElementById("view-login").hidden = view!=="login";
     document.getElementById("bottombar").style.display = (view==="login") ? "none" : "";
     window.scrollTo(0,0);
-    ["home","orders","service","personnel","admin"].forEach(function(v){
+    ["home","orders","service","personnel","agenda","admin"].forEach(function(v){
       var tab = document.getElementById("bb-tab-"+v);
       if (tab) tab.classList.toggle("active", v===view);
     });
     var prevView = __activeView;
     __activeView = view;
     if (view==="admin") loadAdminUsers();
+    if (view==="agenda") loadAgendaItems();
     // Bir veri ekranına ilk kez geçildiğinde (veya geri dönüldüğünde) veriyi
     // hemen tazele; 20sn'lik arka plan döngüsü sadece o ekran açıkken çalışır.
     if (view!==prevView) {
@@ -1688,10 +1715,12 @@ td.num{color:var(--fg-muted)}
   document.getElementById("btn-home-orders").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-service").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-admin").onclick=function(){ showView("home"); };
+  document.getElementById("btn-home-agenda").onclick=function(){ showView("home"); };
   document.getElementById("bb-tab-home").onclick=function(){ showView("home"); };
   document.getElementById("bb-tab-orders").onclick=function(){ showView("orders"); };
   document.getElementById("bb-tab-service").onclick=function(){ showView("service"); };
   document.getElementById("bb-tab-personnel").onclick=function(){ showView("personnel"); };
+  document.getElementById("bb-tab-agenda").onclick=function(){ showView("agenda"); };
   document.getElementById("bb-tab-admin").onclick=function(){ showView("admin"); };
 
   /* ===================== Giriş / Oturum / Yönetim ===================== */
@@ -1715,8 +1744,10 @@ td.num{color:var(--fg-muted)}
     document.getElementById('profile-btn').hidden = false;
     document.getElementById('card-admin').hidden = !user.isAdmin;
     document.getElementById('bb-tab-admin').hidden = !user.isAdmin;
+    document.getElementById('bb-tab-agenda').hidden = false;
     var sub = document.getElementById('home-sub');
     if (sub) sub.textContent = 'Hoş geldin, ' + (user.fullName || user.username) + ' — modül seçin';
+    if (typeof refreshProfileAvatarBadge === 'function') refreshProfileAvatarBadge();
   }
   function boot(){
     var token = getToken(), user = getStoredUser();
@@ -1772,34 +1803,104 @@ td.num{color:var(--fg-muted)}
     currentUser = null;
     document.getElementById('logout-btn').hidden = true;
     document.getElementById('profile-btn').hidden = true;
+    document.getElementById('profile-btn').style.backgroundImage = '';
     document.getElementById('card-admin').hidden = true;
     document.getElementById('bb-tab-admin').hidden = true;
+    document.getElementById('bb-tab-agenda').hidden = true;
     showView('login');
   };
 
+  // Profil ikonu: sıradan kullanıcılar sadece kendi şifrelerini değiştirebilir
+  // ve (isteğe bağlı) bir profil resmi koyabilir. Ad soyad / kullanıcı adı
+  // değişikliği buradan YAPILAMAZ — bunlar sadece Yönetim sayfasından,
+  // yönetici tarafından değiştirilebilir.
   function openProfileModal(){
+    var user = currentUser || getStoredUser() || {};
+    var avatarUrl = user.avatarUrl || '';
     openModal(
       '<div class="modal" role="dialog" aria-modal="true" style="max-width:380px">'+
         '<h2>Profilim</h2>'+
-        '<div class="field">'+
-          '<label for="profile-name-input">Ad Soyad</label>'+
-          '<input id="profile-name-input" type="text" value="'+escAdmin(currentUser&&currentUser.fullName||"")+'" maxlength="60">'+
+        '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'+
+          '<div id="profile-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:'+(avatarUrl?('center/cover url(\''+escAdmin(avatarUrl)+'\')') : 'var(--accent-bg,#eee)')+';display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent,#FF6A2B);font-size:22px;flex-shrink:0;overflow:hidden">'+
+            (avatarUrl ? '' : escAdmin((user.fullName||user.username||'?').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase()))+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:6px">'+
+            '<label for="profile-avatar-input" class="btn" style="cursor:pointer;display:inline-block;font-size:12.5px">Resim Seç</label>'+
+            '<input id="profile-avatar-input" type="file" accept="image/*" style="display:none">'+
+            (avatarUrl ? '<button type="button" class="btn" id="profile-avatar-remove" style="font-size:12.5px">Kaldır</button>' : '')+
+          '</div>'+
         '</div>'+
-        '<div class="err" id="profile-name-err" style="display:none"></div>'+
+        '<div class="field">'+
+          '<label for="profile-pw-old">Mevcut Şifre</label>'+
+          '<input id="profile-pw-old" type="password" autocomplete="current-password">'+
+        '</div>'+
+        '<div class="field">'+
+          '<label for="profile-pw-new">Yeni Şifre</label>'+
+          '<input id="profile-pw-new" type="password" autocomplete="new-password" maxlength="60">'+
+        '</div>'+
+        '<div class="err" id="profile-err" style="display:none"></div>'+
         '<div class="modal-actions">'+
-          '<button type="button" class="btn" id="profile-name-cancel">Vazgeç</button>'+
-          '<button type="button" class="btn btn-primary" id="profile-name-save">Kaydet</button>'+
+          '<button type="button" class="btn" id="profile-cancel">Vazgeç</button>'+
+          '<button type="button" class="btn btn-primary" id="profile-save">Şifreyi Kaydet</button>'+
         '</div>'+
       '</div>'
     );
-    document.getElementById('profile-name-cancel').onclick = closeModal;
-    document.getElementById('profile-name-input').focus();
-    document.getElementById('profile-name-save').onclick = function(){
-      var input = document.getElementById('profile-name-input');
-      var errBox = document.getElementById('profile-name-err');
-      var val = input.value.trim();
-      if (val.length < 2){
-        errBox.textContent = 'Ad soyad en az 2 karakter olmalı.';
+    document.getElementById('profile-cancel').onclick = closeModal;
+
+    document.getElementById('profile-avatar-input').addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var errBox = document.getElementById('profile-err');
+      errBox.style.display = 'none';
+      var reader = new FileReader();
+      reader.onload = function(){
+        var base64 = String(reader.result).split(',')[1];
+        window.google.script.run
+          .withSuccessHandler(function(res){
+            var u = getStoredUser() || {};
+            u.avatarUrl = res.avatarUrl;
+            currentUser = u;
+            saveSession(getToken(), u);
+            var preview = document.getElementById('profile-avatar-preview');
+            if (preview) { preview.style.background = "center/cover url('"+res.avatarUrl+"')"; preview.textContent = ''; }
+            refreshProfileAvatarBadge();
+          })
+          .withFailureHandler(function(err){
+            errBox.textContent = (err && err.message) ? err.message : 'Resim yüklenemedi.';
+            errBox.style.display = 'block';
+          })
+          .setMyAvatar(getToken(), { base64: base64, mimeType: file.type, filename: file.name });
+      };
+      reader.readAsDataURL(file);
+    });
+    var removeBtn = document.getElementById('profile-avatar-remove');
+    if (removeBtn) removeBtn.onclick = function(){
+      window.google.script.run
+        .withSuccessHandler(function(){
+          var u = getStoredUser() || {};
+          u.avatarUrl = '';
+          currentUser = u;
+          saveSession(getToken(), u);
+          var preview = document.getElementById('profile-avatar-preview');
+          if (preview) { preview.style.background = 'var(--accent-bg,#eee)'; preview.textContent = (u.fullName||u.username||'?').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase(); }
+          removeBtn.remove();
+          refreshProfileAvatarBadge();
+        })
+        .withFailureHandler(function(err){ alert((err&&err.message)||'Kaldırılamadı.'); })
+        .removeMyAvatar(getToken());
+    };
+
+    document.getElementById('profile-save').onclick = function(){
+      var oldPw = document.getElementById('profile-pw-old').value;
+      var newPw = document.getElementById('profile-pw-new').value;
+      var errBox = document.getElementById('profile-err');
+      if (!oldPw || !newPw){
+        errBox.textContent = 'Mevcut ve yeni şifreyi girin.';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (newPw.length < 4){
+        errBox.textContent = 'Yeni şifre en az 4 karakter olmalı.';
         errBox.style.display = 'block';
         return;
       }
@@ -1807,23 +1908,32 @@ td.num{color:var(--fg-muted)}
       btn.disabled = true;
       btn.textContent = 'Kaydediliyor…';
       window.google.script.run
-        .withSuccessHandler(function(res){
-          var user = getStoredUser() || {};
-          user.fullName = (res && res.fullName) || val;
-          currentUser = user;
-          saveSession(getToken(), user);
-          var sub = document.getElementById('home-sub');
-          if (sub) sub.textContent = 'Hoş geldin, ' + (user.fullName || user.username) + ' — modül seçin';
+        .withSuccessHandler(function(){
           closeModal();
+          alert('Şifreniz güncellendi.');
         })
         .withFailureHandler(function(err){
           btn.disabled = false;
-          btn.textContent = 'Kaydet';
+          btn.textContent = 'Şifreyi Kaydet';
           errBox.textContent = (err && err.message) ? err.message : 'Kaydedilemedi, tekrar deneyin.';
           errBox.style.display = 'block';
         })
-        .updateMyName(getToken(), val);
+        .changePassword(getToken(), oldPw, newPw);
     };
+  }
+  function refreshProfileAvatarBadge(){
+    var btn = document.getElementById('profile-btn');
+    if (!btn) return;
+    var u = currentUser || getStoredUser() || {};
+    if (u.avatarUrl) {
+      btn.style.backgroundImage = "url('"+u.avatarUrl+"')";
+      btn.style.backgroundSize = 'cover';
+      btn.style.backgroundPosition = 'center';
+      btn.classList.add('has-avatar');
+    } else {
+      btn.style.backgroundImage = '';
+      btn.classList.remove('has-avatar');
+    }
   }
   document.getElementById('profile-btn').onclick = openProfileModal;
 
@@ -1843,15 +1953,19 @@ td.num{color:var(--fg-muted)}
     document.getElementById('admin-user-count').textContent = users.length + ' kullanıcı';
     var list = document.getElementById('admin-user-list');
     if (!users.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz kullanıcı yok.</div>'; return; }
+    window.__adminUsersCache = users;
     list.innerHTML = users.map(function(u){
       var initials = (u.fullName||u.username||'?').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase();
+      var avatarInner = u.avatarUrl ? '' : escAdmin(initials);
+      var avatarStyle = u.avatarUrl ? " style=\"background:center/cover url('"+escAdmin(u.avatarUrl)+"')\"" : '';
       return '<div class="admin-user-row">'+
-        '<div class="admin-user-avatar">'+escAdmin(initials)+'</div>'+
+        '<div class="admin-user-avatar"'+avatarStyle+'>'+avatarInner+'</div>'+
         '<div class="admin-user-main">'+
           '<div class="admin-user-name">'+escAdmin(u.fullName)+' <span class="admin-role-badge '+(u.isAdmin?'admin':'standard')+'">'+(u.isAdmin?'Yönetici':'Standart')+'</span></div>'+
           '<div class="admin-user-sub">@'+escAdmin(u.username)+' · '+(u.active?'Aktif':'Devre dışı')+'</div>'+
         '</div>'+
         '<div class="admin-user-actions">'+
+          '<button type="button" class="admin-mini-btn" data-act="edit" data-id="'+escAdmin(u.id)+'">Düzenle</button>'+
           '<button type="button" class="admin-mini-btn" data-act="toggle" data-id="'+escAdmin(u.id)+'" data-active="'+(u.active?'1':'0')+'">'+(u.active?'Devre Dışı Bırak':'Etkinleştir')+'</button>'+
           '<button type="button" class="admin-mini-btn" data-act="reset" data-id="'+escAdmin(u.id)+'" data-name="'+escAdmin(u.fullName)+'">Şifre Sıfırla</button>'+
           '<button type="button" class="admin-mini-btn danger" data-act="delete" data-id="'+escAdmin(u.id)+'" data-name="'+escAdmin(u.fullName)+'">Sil</button>'+
@@ -1862,7 +1976,10 @@ td.num{color:var(--fg-muted)}
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
         var id = btn.getAttribute('data-id');
-        if (act === 'toggle') {
+        if (act === 'edit') {
+          var u = (window.__adminUsersCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+          if (u) openEditUserModal(u);
+        } else if (act === 'toggle') {
           var nextActive = btn.getAttribute('data-active') !== '1';
           window.google.script.run.withSuccessHandler(loadAdminUsers).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).adminSetUserActive(getToken(), id, nextActive);
         } else if (act === 'reset') {
@@ -1875,6 +1992,59 @@ td.num{color:var(--fg-muted)}
         }
       });
     });
+  }
+
+  // Bir kullanıcıyı düzenleme: ad soyad, kullanıcı adı, izinler, yöneticilik ve
+  // (opsiyonel) yeni şifre — tek ekrandan. Aynı ekran, işten ayrılan birinin
+  // hesabını yeni bir çalışana devretmek için de kullanılabilir: kullanıcı
+  // adı + ad soyad + şifre birlikte değiştirilip hesap yeni kişiye uyarlanır.
+  function openEditUserModal(u){
+    var permsHtml = PERM_GROUPS.map(function(g){
+      return '<div class="perm-group"><h4>'+escAdmin(g.title)+'</h4><div class="perm-check-row">'+
+        g.perms.map(function(p){
+          var checked = (u.permissions && u.permissions[p[0]]) ? ' checked' : '';
+          return '<label><input type="checkbox" name="'+p[0]+'"'+checked+'>'+escAdmin(p[1])+'</label>';
+        }).join('')+
+      '</div></div>';
+    }).join('');
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true">'+
+      '<h2>Kullanıcıyı Düzenle</h2>'+
+      '<div class="hint" style="margin-bottom:10px">İşten ayrılan birinin hesabını yeni bir çalışana devretmek için kullanıcı adını, ad soyadı ve şifreyi birlikte değiştirebilirsiniz.</div>'+
+      '<div class="field"><label>Ad Soyad</label><input type="text" id="eu-fullname" value="'+escAdmin(u.fullName)+'" required></div>'+
+      '<div class="field"><label>Kullanıcı adı</label><input type="text" id="eu-username" value="'+escAdmin(u.username)+'" required></div>'+
+      '<div class="field"><label>Yeni şifre (opsiyonel — boş bırakılırsa değişmez)</label><input type="text" id="eu-password" placeholder="Değiştirmek istemiyorsanız boş bırakın"></div>'+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="eu-admin"'+(u.isAdmin?' checked':'')+'> Yönetici yetkisi ver (tüm izinleri otomatik kapsar)</label>'+
+      '<div id="eu-perms" style="display:flex;flex-direction:column;gap:10px">'+permsHtml+'</div>'+
+      '<div class="err" id="eu-err" style="display:none"></div>'+
+      '<div class="modal-actions"><button class="btn" data-action="cancel" type="button">Vazgeç</button><button class="btn btn-primary" data-action="save" type="button">Kaydet</button></div>'+
+      '</div>'
+    );
+    overlay.querySelector('[data-action="cancel"]').onclick = closeModal;
+    overlay.querySelector('[data-action="save"]').onclick = function(){
+      var errBox = document.getElementById('eu-err');
+      var payload = {
+        fullName: document.getElementById('eu-fullname').value.trim(),
+        username: document.getElementById('eu-username').value.trim(),
+        isAdmin: document.getElementById('eu-admin').checked
+      };
+      var newPw = document.getElementById('eu-password').value;
+      if (newPw) payload.newPassword = newPw;
+      overlay.querySelectorAll('#eu-perms input[type=checkbox]').forEach(function(cb){ payload[cb.name] = cb.checked; });
+      if (!payload.fullName || !payload.username) { errBox.textContent = 'Ad soyad ve kullanıcı adı zorunludur.'; errBox.style.display='block'; return; }
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Kaydediliyor…';
+      window.google.script.run
+        .withSuccessHandler(function(){ closeModal(); loadAdminUsers(); })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          btn.textContent = 'Kaydet';
+          errBox.textContent = (err && err.message) ? err.message : 'Kaydedilemedi, tekrar deneyin.';
+          errBox.style.display = 'block';
+        })
+        .adminUpdateUser(getToken(), u.id, payload);
+    };
   }
 
   var PERM_GROUPS = [
@@ -1916,7 +2086,111 @@ td.num{color:var(--fg-muted)}
     };
   }
   document.getElementById('btn-new-user').onclick = openNewUserModal;
-  document.getElementById('btn-my-profile').onclick = openProfileModal;
+
+  /* ---- Ajanda (kişisel, giriş yapan kişiye özel) ---- */
+  function fmtAgendaDate_(d){
+    if (!d) return '';
+    try {
+      var dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    } catch(e){ return String(d); }
+  }
+  function loadAgendaItems(){
+    var list = document.getElementById('agenda-list');
+    list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    window.google.script.run
+      .withSuccessHandler(renderAgendaList)
+      .withFailureHandler(function(err){
+        list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Ajanda yüklenemedi.')+'</div>';
+      })
+      .getAgendaItems(getToken());
+  }
+  function renderAgendaList(items){
+    window.__agendaCache = items;
+    document.getElementById('agenda-count').textContent = items.length + ' not';
+    var list = document.getElementById('agenda-list');
+    if (!items.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz bir notunuz yok.</div>'; return; }
+    list.innerHTML = items.map(function(it){
+      return '<div class="admin-user-row">'+
+        '<div class="agenda-date-badge">'+escAdmin(fmtAgendaDate_(it.date))+(it.time?('<br>'+escAdmin(it.time)):'')+'</div>'+
+        '<div class="admin-user-main">'+
+          '<div class="admin-user-name">'+escAdmin(it.title)+'</div>'+
+          (it.note ? '<div class="admin-user-sub">'+escAdmin(it.note)+'</div>' : '')+
+        '</div>'+
+        '<div class="admin-user-actions">'+
+          '<button type="button" class="admin-mini-btn" data-act="agenda-edit" data-id="'+escAdmin(it.id)+'">Düzenle</button>'+
+          '<button type="button" class="admin-mini-btn danger" data-act="agenda-delete" data-id="'+escAdmin(it.id)+'">Sil</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    list.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var act = btn.getAttribute('data-act');
+        var id = btn.getAttribute('data-id');
+        if (act === 'agenda-edit') {
+          var it = (window.__agendaCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+          if (it) openAgendaModal(it);
+        } else if (act === 'agenda-delete') {
+          if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
+          window.google.script.run.withSuccessHandler(loadAgendaItems).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteAgendaItem(getToken(), id);
+        }
+      });
+    });
+  }
+  function toInputDate_(d){
+    if (!d) return '';
+    try {
+      var dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt.getTime())) return '';
+      var mm = String(dt.getMonth()+1).padStart(2,'0');
+      var dd = String(dt.getDate()).padStart(2,'0');
+      return dt.getFullYear()+'-'+mm+'-'+dd;
+    } catch(e){ return ''; }
+  }
+  function openAgendaModal(existing){
+    var isEdit = !!existing;
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true" style="max-width:380px">'+
+        '<h2>'+(isEdit?'Notu Düzenle':'Yeni Ajanda Notu')+'</h2>'+
+        '<div class="field"><label>Başlık</label><input type="text" id="ag-title" value="'+(isEdit?escAdmin(existing.title):'')+'" maxlength="80"></div>'+
+        '<div class="field"><label>Tarih</label><input type="date" id="ag-date" value="'+(isEdit?toInputDate_(existing.date):'')+'"></div>'+
+        '<div class="field"><label>Saat (opsiyonel)</label><input type="time" id="ag-time" value="'+(isEdit?escAdmin(existing.time||''):'')+'"></div>'+
+        '<div class="field"><label>Not (opsiyonel)</label><textarea id="ag-note" rows="3" maxlength="300">'+(isEdit?escAdmin(existing.note||''):'')+'</textarea></div>'+
+        '<div class="err" id="ag-err" style="display:none"></div>'+
+        '<div class="modal-actions">'+
+          '<button type="button" class="btn" id="ag-cancel">Vazgeç</button>'+
+          '<button type="button" class="btn btn-primary" id="ag-save">Kaydet</button>'+
+        '</div>'+
+      '</div>'
+    );
+    document.getElementById('ag-cancel').onclick = closeModal;
+    document.getElementById('ag-save').onclick = function(){
+      var errBox = document.getElementById('ag-err');
+      var payload = {
+        title: document.getElementById('ag-title').value.trim(),
+        date: document.getElementById('ag-date').value,
+        time: document.getElementById('ag-time').value,
+        note: document.getElementById('ag-note').value.trim()
+      };
+      if (!payload.title) { errBox.textContent = 'Başlık zorunludur.'; errBox.style.display='block'; return; }
+      if (!payload.date) { errBox.textContent = 'Tarih zorunludur.'; errBox.style.display='block'; return; }
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Kaydediliyor…';
+      var runner = window.google.script.run
+        .withSuccessHandler(function(){ closeModal(); loadAgendaItems(); })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          btn.textContent = 'Kaydet';
+          errBox.textContent = (err && err.message) ? err.message : 'Kaydedilemedi, tekrar deneyin.';
+          errBox.style.display = 'block';
+        });
+      if (isEdit) runner.updateAgendaItem(getToken(), existing.id, payload);
+      else runner.addAgendaItem(getToken(), payload);
+    };
+  }
+  document.getElementById('btn-new-agenda').onclick = function(){ openAgendaModal(null); };
 
   boot();
 
