@@ -286,13 +286,13 @@ td.num{color:var(--fg-muted)}
 /* Alt gezinme çubuğu (mobil uygulama hissi) */
 .bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-evenly;align-items:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));z-index:40}
 .bb-tab{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;color:var(--fg-muted);cursor:pointer;padding:6px 10px;border-radius:10px;transition:color .15s;position:relative;background:none;border:none;font-family:inherit;flex:1 1 0;max-width:180px}
-.bb-icon-wrap{display:flex;align-items:center;justify-content:center;flex:none;padding:6px 10px;border-radius:10px;transition:background .18s,box-shadow .18s}
+.bb-icon-wrap{display:flex;align-items:center;justify-content:center;flex:none}
 .bb-tab svg{width:26px;height:26px;transition:transform .12s}
 .bb-tab:active svg{transform:scale(.88)}
 .bb-tab-label{font-size:13px;font-weight:700;letter-spacing:-.005em;white-space:nowrap}
-.bb-tab.active{color:var(--accent)}
+.bb-tab.active{color:var(--accent);background:var(--accent-bg);box-shadow:0 4px 16px -4px rgba(255,106,43,.45)}
 .bb-tab.active .bb-tab-label{font-weight:800}
-.bb-tab.active .bb-icon-wrap{background:var(--accent-bg);box-shadow:0 4px 16px -4px rgba(255,106,43,.45)}
+.bb-tab.disabled{opacity:.42;cursor:not-allowed}
 @media (max-width:620px){
   .bottombar{justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:2px}
   .bb-tab{flex:0 0 auto;gap:6px;padding:6px 12px}
@@ -747,6 +747,10 @@ td.num{color:var(--fg-muted)}
   <button class="bb-tab" id="bb-tab-personnel" type="button">
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 11a4 4 0 1 0-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 14a6 6 0 0 1 5 5.91V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
     <div class="bb-tab-label">Personel</div>
+  </button>
+  <button class="bb-tab disabled" id="bb-tab-stock" type="button" title="Yakında" disabled>
+    <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/></svg></span>
+    <div class="bb-tab-label">Stok</div>
   </button>
   <button class="bb-tab" id="bb-tab-admin" type="button" hidden>
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3.2v5.1c0 4.6-3 8.9-7 10.2-4-1.3-7-5.6-7-10.2V5.2L12 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
