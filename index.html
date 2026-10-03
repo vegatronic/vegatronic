@@ -599,7 +599,10 @@ td.num{color:var(--fg-muted)}
     </div>
     <div class="admin-toolbar">
       <div class="hint" id="admin-user-count">—</div>
-      <button class="btn btn-primary" id="btn-new-user" type="button">+ Yeni Kullanıcı</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btn-my-profile" type="button">Profilim (Ad Soyadımı Değiştir)</button>
+        <button class="btn btn-primary" id="btn-new-user" type="button">+ Yeni Kullanıcı</button>
+      </div>
     </div>
     <div class="card">
       <div id="admin-user-list"></div>
@@ -1774,7 +1777,7 @@ td.num{color:var(--fg-muted)}
     showView('login');
   };
 
-  document.getElementById('profile-btn').onclick = function(){
+  function openProfileModal(){
     openModal(
       '<div class="modal" role="dialog" aria-modal="true" style="max-width:380px">'+
         '<h2>Profilim</h2>'+
@@ -1821,7 +1824,8 @@ td.num{color:var(--fg-muted)}
         })
         .updateMyName(getToken(), val);
     };
-  };
+  }
+  document.getElementById('profile-btn').onclick = openProfileModal;
 
   /* ---- Yönetim paneli ---- */
   function escAdmin(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -1912,6 +1916,7 @@ td.num{color:var(--fg-muted)}
     };
   }
   document.getElementById('btn-new-user').onclick = openNewUserModal;
+  document.getElementById('btn-my-profile').onclick = openProfileModal;
 
   boot();
 
