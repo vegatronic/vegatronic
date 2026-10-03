@@ -347,6 +347,14 @@ td.num{color:var(--fg-muted)}
 .admin-mini-btn{border:1px solid var(--border);background:var(--surface);color:var(--fg-muted);font-size:11px;font-weight:600;padding:6px 9px;border-radius:8px;cursor:pointer;font-family:inherit}
 .admin-mini-btn:hover{color:var(--accent);border-color:var(--accent)}
 .admin-mini-btn.danger:hover{color:var(--danger,#E2493D);border-color:var(--danger,#E2493D)}
+/* Dar ekranlarda isim/rozet ile aksiyon butonları yan yana sığmıyor ve
+   üst üste biniyordu — bu genişlikten itibaren butonlar alt satıra,
+   tam genişlikte iner. */
+@media (max-width:560px){
+  .admin-user-row{flex-wrap:wrap}
+  .admin-user-main{flex-basis:0}
+  .admin-user-actions{flex-basis:100%;width:100%;margin-top:10px;padding-left:46px;box-sizing:border-box}
+}
 .perm-group{border:1px solid var(--border);border-radius:12px;padding:12px}
 .perm-group h4{margin:0 0 8px;font-size:12.5px;font-weight:700}
 .perm-check-row{display:flex;flex-wrap:wrap;gap:10px}
