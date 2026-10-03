@@ -1,16 +1,16 @@
-## Hi there 👋
+# Vega Grup Dijital Takip Sistemi
 
-<!--
-**vegatronic/vegatronic** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+Üretim-Teslimat, Bakım-Servis ve Personel takibi için kurumsal, PWA (yüklenebilir uygulama) olarak çalışan takip sistemi.
 
-Here are some ideas to get you started:
+🔗 **Canlı uygulama:** https://vegatronic.github.io/vegatronic/
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Nasıl çalışır?
+
+- Arayüz bu depoda statik dosyalar olarak barınır (GitHub Pages).
+- Veriler hâlâ Google Sheets'te tutulur; uygulama Google Apps Script Web App'e (`/exec` adresi) bağlanarak okuma/yazma yapar.
+- İlk açılışta uygulama senden Apps Script dağıtım adresini bir kere ister ve cihazında saklar.
+- Telefon/bilgisayarda "Ana ekrana ekle" ile normal bir uygulama gibi kurulabilir.
+
+## Güncelleme
+
+Tasarım veya mantık değiştiğinde `index.html`, `manifest.json`, `service-worker.js` ve `icons/` dosyaları güncellenip bu depoya gönderilir; GitHub Pages otomatik olarak yeni sürümü yayınlar.
