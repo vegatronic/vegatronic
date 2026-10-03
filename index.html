@@ -105,13 +105,20 @@ h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em;text-wrap:balance
 .topbar .btn:not(.btn-ghost):not(.btn-primary){background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 28px}
 @media (max-width:720px){.stats{grid-template-columns:repeat(2,1fr);padding:0 16px}}
-.stat{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 16px;display:flex;flex-direction:column;gap:4px;min-width:0;box-shadow:var(--shadow)}
-.stat-clickable{cursor:pointer;transition:transform .12s,box-shadow .15s}
-.stat-clickable:hover,.stat-clickable:focus-visible{box-shadow:var(--shadow-lift);transform:translateY(-2px);outline:none}
+.stat{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:center;gap:13px;min-width:0;box-shadow:var(--shadow)}
+.stat-clickable{cursor:pointer;transition:transform .15s cubic-bezier(.16,1,.3,1),box-shadow .15s,border-color .15s}
+.stat-clickable:hover,.stat-clickable:focus-visible{box-shadow:var(--shadow-lift);transform:translateY(-3px);border-color:transparent;outline:none}
 .stat-clickable:active{transform:scale(.98)}
-.stat .label{font-size:11px;color:var(--fg-muted);font-weight:600;letter-spacing:.02em}
-.stat .value{font-variant-numeric:tabular-nums;font-size:23px;font-weight:800;color:var(--fg);font-family:var(--font-display)}
-.stat .value small{font-family:var(--font-body);font-size:13px;color:var(--fg-muted);font-weight:500}
+.stat-icon{flex:none;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.stat-icon svg{width:21px;height:21px}
+.stat-icon.tone-accent{background:var(--accent-bg);color:var(--accent)}
+.stat-icon.tone-success{background:var(--success-bg);color:var(--success)}
+.stat-icon.tone-warning{background:var(--warning-bg);color:var(--warning)}
+.stat-icon.tone-blue{background:var(--blue-bg);color:var(--blue)}
+.stat-text{min-width:0}
+.stat .label{font-size:11px;color:var(--fg-muted);font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.stat .value{font-variant-numeric:tabular-nums;font-size:22px;font-weight:800;color:var(--fg);font-family:var(--font-display);margin-top:2px}
+.stat .value small{font-family:var(--font-body);font-size:12.5px;color:var(--fg-muted);font-weight:600}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:0 28px}
 @media (max-width:720px){.controls{margin:0 16px}}
 .controls input[type="month"],.controls input[type="search"]{font-family:var(--font-body);border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);border-radius:9px;padding:8px 11px;font-size:13.5px;min-width:0}
@@ -268,11 +275,13 @@ td.num{color:var(--fg-muted)}
 }
 
 /* Alt gezinme çubuğu (mobil uygulama hissi) */
-.bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 20px rgba(16,24,40,.08);z-index:40}
-.bb-tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--fg-muted);cursor:pointer;padding:5px 15px;border-radius:11px;transition:background .15s,color .15s;position:relative;background:none;border:none;font-family:inherit}
-.bb-tab svg{width:20px;height:20px}
-.bb-tab-label{font-size:10px;font-weight:600}
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;justify-content:center;align-items:center;gap:4px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 28px rgba(16,24,40,.1);z-index:40}
+.bb-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--fg-muted);cursor:pointer;padding:7px 18px;border-radius:13px;transition:background .15s,color .15s,transform .1s;position:relative;background:none;border:none;font-family:inherit;flex:1 1 0;max-width:120px}
+.bb-tab:active{transform:scale(.95)}
+.bb-tab svg{width:25px;height:25px}
+.bb-tab-label{font-size:11.5px;font-weight:700;letter-spacing:-.005em}
 .bb-tab.active{color:var(--accent);background:var(--accent-bg)}
+.bb-tab.active svg{filter:drop-shadow(0 1px 1px rgba(255,106,43,.25))}
 #app{padding-bottom:84px}
 
 /* Giriş ekranı */
@@ -722,6 +731,10 @@ td.num{color:var(--fg-muted)}
     <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 11a4 4 0 1 0-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 14a6 6 0 0 1 5 5.91V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     <div class="bb-tab-label">Personel</div>
   </button>
+  <button class="bb-tab" id="bb-tab-admin" type="button" hidden>
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3.2v5.1c0 4.6-3 8.9-7 10.2-4-1.3-7-5.6-7-10.2V5.2L12 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="bb-tab-label">Yönetim</div>
+  </button>
 </div>
 
 <div class="overlay" id="overlay" hidden></div>
@@ -736,6 +749,18 @@ td.num{color:var(--fg-muted)}
   // çağrısı (siparişler + servis + personel) tetiklenip gereksiz yere
   // birbirini yavaşlatmaz.
   var __activeView = "login";
+
+  // Servis ve personel istatistik kartlarında kullanılan paylaşılan ikon seti.
+  var STAT_ICONS = {
+    wrench:'<svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4L14.7 6.3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="m8.5 12.5 2.3 2.3L16 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    box:'<svg viewBox="0 0 24 24" fill="none"><path d="M21 8l-9-5-9 5 9 5 9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8v8l9 5 9-5V8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    returnArrow:'<svg viewBox="0 0 24 24" fill="none"><path d="M9 14 4 9l5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10a6 6 0 0 1 6 6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    users:'<svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 11a4 4 0 1 0-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 14a6 6 0 0 1 5 5.91V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    calendar:'<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    book:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    calendarRange:'<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 3v4M16 3v4M8 15h3M13 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  };
 
   var STATUS = {
     siparis:{label:"Sipariş Alındı", cls:"pill-siparis"},
@@ -919,14 +944,22 @@ td.num{color:var(--fg-muted)}
 
     state.statLists = { ordered:orderedThisMonth, delivered:deliveredThisMonth, pending:pending };
 
+    var ICON_BOX='<svg viewBox="0 0 24 24" fill="none"><path d="M21 8l-9-5-9 5 9 5 9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8v8l9 5 9-5V8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    var ICON_CHECK='<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="m8.5 12.5 2.3 2.3L16 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var ICON_CLOCK='<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var ICON_STOPWATCH='<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 13V9M9 2h6M12 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
     var tiles=[
-      {key:"ordered", label:"Bu Ay Sipariş Edilen", value:String(orderedQty), sub:"ürün · "+orderedThisMonth.length+" sipariş"},
-      {key:"delivered", label:"Bu Ay Teslim Edilen", value:String(deliveredQty), sub:"ürün · "+deliveredThisMonth.length+" sipariş"},
-      {key:"pending", label:"Bekleyen Teslimat", value:String(pendingQty), sub:pending.length+" sipariş"+(lateCount? " · "+lateCount+" gecikmiş":"")},
-      {key:null, label:"Ort. Teslim Süresi", value: avgDays==null? "—" : String(avgDays), sub: avgDays==null? null:"gün"}
+      {key:"ordered", tone:"accent", icon:ICON_BOX, label:"Bu Ay Sipariş Edilen", value:String(orderedQty), sub:"ürün · "+orderedThisMonth.length+" sipariş"},
+      {key:"delivered", tone:"success", icon:ICON_CHECK, label:"Bu Ay Teslim Edilen", value:String(deliveredQty), sub:"ürün · "+deliveredThisMonth.length+" sipariş"},
+      {key:"pending", tone:"warning", icon:ICON_CLOCK, label:"Bekleyen Teslimat", value:String(pendingQty), sub:pending.length+" sipariş"+(lateCount? " · "+lateCount+" gecikmiş":"")},
+      {key:null, tone:"blue", icon:ICON_STOPWATCH, label:"Ort. Teslim Süresi", value: avgDays==null? "—" : String(avgDays), sub: avgDays==null? null:"gün"}
     ];
     document.getElementById("stats").innerHTML = tiles.map(function(t){
-      return '<div class="stat'+(t.key?' stat-clickable':'')+'"'+(t.key?' data-stat="'+t.key+'" tabindex="0" role="button"':'')+'><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div>';
+      return '<div class="stat'+(t.key?' stat-clickable':'')+'"'+(t.key?' data-stat="'+t.key+'" tabindex="0" role="button"':'')+'>'+
+        '<div class="stat-icon tone-'+t.tone+'">'+t.icon+'</div>'+
+        '<div class="stat-text"><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div>'+
+      '</div>';
     }).join("");
   }
 
@@ -1574,7 +1607,7 @@ td.num{color:var(--fg-muted)}
     document.getElementById("view-login").hidden = view!=="login";
     document.getElementById("bottombar").style.display = (view==="login") ? "none" : "";
     window.scrollTo(0,0);
-    ["home","orders","service","personnel"].forEach(function(v){
+    ["home","orders","service","personnel","admin"].forEach(function(v){
       var tab = document.getElementById("bb-tab-"+v);
       if (tab) tab.classList.toggle("active", v===view);
     });
@@ -1601,6 +1634,7 @@ td.num{color:var(--fg-muted)}
   document.getElementById("bb-tab-orders").onclick=function(){ showView("orders"); };
   document.getElementById("bb-tab-service").onclick=function(){ showView("service"); };
   document.getElementById("bb-tab-personnel").onclick=function(){ showView("personnel"); };
+  document.getElementById("bb-tab-admin").onclick=function(){ showView("admin"); };
 
   /* ===================== Giriş / Oturum / Yönetim ===================== */
   var currentUser = null;
@@ -1621,6 +1655,7 @@ td.num{color:var(--fg-muted)}
     currentUser = user;
     document.getElementById('logout-btn').hidden = false;
     document.getElementById('card-admin').hidden = !user.isAdmin;
+    document.getElementById('bb-tab-admin').hidden = !user.isAdmin;
     var sub = document.getElementById('home-sub');
     if (sub) sub.textContent = 'Hoş geldin, ' + (user.fullName || user.username) + ' — modül seçin';
   }
@@ -1678,6 +1713,7 @@ td.num{color:var(--fg-muted)}
     currentUser = null;
     document.getElementById('logout-btn').hidden = true;
     document.getElementById('card-admin').hidden = true;
+    document.getElementById('bb-tab-admin').hidden = true;
     showView('login');
   };
 
@@ -1947,13 +1983,13 @@ td.num{color:var(--fg-muted)}
     var partWaiting = sState.records.filter(function(o){return o.partNeeded==="Evet" && o.cargoArrived!=="Evet";});
     var returnWaiting = sState.records.filter(function(o){return o.oldPartRequested==="Evet" && o.returnArrived!=="Evet";});
     var tiles=[
-      {label:"Açık Servis Kayıtları", value:String(open.length)},
-      {label:"Bu Ay Çözülen", value:String(resolvedThisMonth.length)},
-      {label:"Yedek Parça Bekleyen", value:String(partWaiting.length)},
-      {label:"Arızalı Parça Bekleyen", value:String(returnWaiting.length)}
+      {tone:"warning", icon:STAT_ICONS.wrench, label:"Açık Servis Kayıtları", value:String(open.length)},
+      {tone:"success", icon:STAT_ICONS.check, label:"Bu Ay Çözülen", value:String(resolvedThisMonth.length)},
+      {tone:"blue", icon:STAT_ICONS.box, label:"Yedek Parça Bekleyen", value:String(partWaiting.length)},
+      {tone:"accent", icon:STAT_ICONS.returnArrow, label:"Arızalı Parça Bekleyen", value:String(returnWaiting.length)}
     ];
     document.getElementById("s-stats").innerHTML = tiles.map(function(t){
-      return '<div class="stat"><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+'</div></div>';
+      return '<div class="stat"><div class="stat-icon tone-'+t.tone+'">'+t.icon+'</div><div class="stat-text"><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+'</div></div></div>';
     }).join("");
   }
 
@@ -2428,26 +2464,26 @@ td.num{color:var(--fg-muted)}
     var tiles;
     if(weekend){
       tiles=[
-        {label:"Toplam Aktif Personel", value:String(active.length), sub:(pState.personnel.length-active.length)+" ayrılmış"},
-        {label:"Bugün Mevcut", value:"—", sub:"Tatil günü"},
-        {label:"Bugün İzinli", value:"—", sub:"Tatil günü"},
-        {label:"Bugün Okulda", value:"—", sub:"Tatil günü"},
-        {label:year+" Toplam İzin", value:String(yearLeaveDaysTotal), sub:"gün"}
+        {tone:"accent", icon:STAT_ICONS.users, label:"Toplam Aktif Personel", value:String(active.length), sub:(pState.personnel.length-active.length)+" ayrılmış"},
+        {tone:"success", icon:STAT_ICONS.check, label:"Bugün Mevcut", value:"—", sub:"Tatil günü"},
+        {tone:"warning", icon:STAT_ICONS.calendar, label:"Bugün İzinli", value:"—", sub:"Tatil günü"},
+        {tone:"blue", icon:STAT_ICONS.book, label:"Bugün Okulda", value:"—", sub:"Tatil günü"},
+        {tone:"accent", icon:STAT_ICONS.calendarRange, label:year+" Toplam İzin", value:String(yearLeaveDaysTotal), sub:"gün"}
       ];
     } else {
       var onLeaveToday=active.filter(function(o){ return !!pLeaveOnDate(o.id, today); });
       var schoolToday=active.filter(function(o){ return !pLeaveOnDate(o.id, today) && pIsSchoolDayToday(o); });
       var presentToday=active.length-onLeaveToday.length-schoolToday.length;
       tiles=[
-        {label:"Toplam Aktif Personel", value:String(active.length), sub:(pState.personnel.length-active.length)+" ayrılmış"},
-        {label:"Bugün Mevcut", value:String(presentToday), sub:active.length+" aktif personelden"},
-        {label:"Bugün İzinli", value:String(onLeaveToday.length), sub:onLeaveToday.length? "aşağıda listelenir":"—"},
-        {label:"Bugün Okulda", value:String(schoolToday.length), sub:schoolToday.length? "aşağıda listelenir":"—"},
-        {label:year+" Toplam İzin", value:String(yearLeaveDaysTotal), sub:"gün"}
+        {tone:"accent", icon:STAT_ICONS.users, label:"Toplam Aktif Personel", value:String(active.length), sub:(pState.personnel.length-active.length)+" ayrılmış"},
+        {tone:"success", icon:STAT_ICONS.check, label:"Bugün Mevcut", value:String(presentToday), sub:active.length+" aktif personelden"},
+        {tone:"warning", icon:STAT_ICONS.calendar, label:"Bugün İzinli", value:String(onLeaveToday.length), sub:onLeaveToday.length? "aşağıda listelenir":"—"},
+        {tone:"blue", icon:STAT_ICONS.book, label:"Bugün Okulda", value:String(schoolToday.length), sub:schoolToday.length? "aşağıda listelenir":"—"},
+        {tone:"accent", icon:STAT_ICONS.calendarRange, label:year+" Toplam İzin", value:String(yearLeaveDaysTotal), sub:"gün"}
       ];
     }
     document.getElementById("p-stats").innerHTML = tiles.map(function(t){
-      return '<div class="stat"><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div>';
+      return '<div class="stat"><div class="stat-icon tone-'+t.tone+'">'+t.icon+'</div><div class="stat-text"><div class="label">'+esc(t.label)+'</div><div class="value">'+esc(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div></div>';
     }).join("");
   }
 
