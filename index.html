@@ -106,6 +106,9 @@ h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em;text-wrap:balance
 .topbar .btn:not(.btn-ghost):not(.btn-primary){background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 28px}
 @media (max-width:720px){.stats{grid-template-columns:repeat(2,1fr);padding:0 16px}}
+@media (max-width:480px){.stats{grid-template-columns:1fr}
+  .stat .value small{display:block;margin-top:1px}
+}
 .stat{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:center;gap:13px;min-width:0;box-shadow:var(--shadow)}
 .fade-up{animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
