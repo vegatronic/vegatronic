@@ -3,6 +3,7 @@
 <head>
 <base target="_top">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dijital Takip Sistemi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1492,14 +1493,34 @@ td.num{color:var(--fg-muted)}
       })
       .catch(function(){ hideItem('pill-usd'); hideItem('pill-eur'); });
 
-    currencyPromise.then(function(){
-      return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){ return r.json(); });
-    }).then(function(d){
-      if (!usdTryRate) { hideItem('pill-gold'); return; }
-      var xauUsdPerOunce = d.items[0].xauPrice;
+    function showGold(xauUsdPerOunce){
+      if (!usdTryRate || !xauUsdPerOunce) { throw new Error('no rate'); }
       var gramTry = (xauUsdPerOunce / 31.1034768) * usdTryRate;
       fillItem('pill-gold', '🪙', gramTry.toFixed(0) + ' ₺', 'Gram Altın');
-    }).catch(function(){ hideItem('pill-gold'); });
+    }
+    function goldFromGoldpriceOrg(){
+      return fetch('https://data-asg.goldprice.org/dbXRates/USD')
+        .then(function(r){ return r.json(); })
+        .then(function(d){ showGold(d.items[0].xauPrice); });
+    }
+    function goldFromFallbackApi(){
+      // goldprice.org bazı tarayıcı/ağ ortamlarında CORS nedeniyle engellenebiliyor;
+      // o durumda ikinci, bağımsız bir kaynağa geçiyoruz.
+      return fetch('https://api.gold-api.com/price/XAU')
+        .then(function(r){ return r.json(); })
+        .then(function(d){ showGold(d.price); });
+    }
+    currencyPromise.then(function(){
+      return goldFromGoldpriceOrg().catch(goldFromFallbackApi);
+    }).catch(function(){
+      // İki kaynak da başarısız olursa sessizce kaybolmak yerine bunu belli et.
+      var el = document.getElementById('pill-gold');
+      if (el) {
+        el.classList.remove('pending');
+        var valEl = el.querySelector('.today-pill-val'); if (valEl) valEl.textContent = '—';
+        var lblEl = el.querySelector('.today-pill-lbl'); if (lblEl) lblEl.textContent = 'Altın (şu an alınamadı)';
+      }
+    });
   })();
 
   /* ===================== Bildirim zili ===================== */
