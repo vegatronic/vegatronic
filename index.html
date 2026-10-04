@@ -232,7 +232,7 @@ td.num{color:var(--fg-muted)}
 .module-card .m-icon{width:44px;height:44px;padding:10px;box-sizing:border-box;border-radius:11px;background:var(--accent-bg);color:var(--accent)}
 #card-service .m-icon{background:var(--blue-bg);color:var(--blue)}
 #card-personnel .m-icon{background:var(--success-bg);color:var(--success)}
-#card-stock .m-icon{background:var(--neutral-bg);color:var(--fg-muted)}
+#card-stock .m-icon{background:var(--warning-bg);color:var(--warning)}
 .module-card h2{font-size:16px;font-weight:700}
 .module-card p{margin:0;color:var(--fg-muted);font-size:13px;line-height:1.5}
 .module-card .m-tag{font-size:10.5px;letter-spacing:.04em;color:var(--fg-muted);font-weight:700}
@@ -349,6 +349,12 @@ td.num{color:var(--fg-muted)}
 .admin-user-row:last-child{border-bottom:none}
 .admin-user-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;flex-shrink:0}
 .agenda-date-badge{min-width:54px;padding:6px 4px;border-radius:12px;background:var(--accent-bg);color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:11px;line-height:1.35;flex-shrink:0;text-align:center}
+.stock-thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--surface-2,var(--bg));border:1px solid var(--border)}
+.stock-thumb-placeholder{width:44px;height:44px;border-radius:10px;flex-shrink:0;background:var(--surface-2,var(--bg));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--fg-muted)}
+.stock-thumb-placeholder svg{width:20px;height:20px}
+.stock-qty{font-weight:800;font-variant-numeric:tabular-nums}
+.stock-critical-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--danger-bg,#fde3e1);color:var(--danger,#E2493D)}
+.admin-user-row.stock-critical{background:var(--danger-bg,#fde3e1)}
 .admin-user-main{flex:1;min-width:0}
 .admin-user-name{font-weight:700;font-size:13.5px}
 .admin-user-sub{font-size:11.5px;color:var(--fg-muted)}
@@ -555,11 +561,11 @@ td.num{color:var(--fg-muted)}
         <h2>Personel Takibi</h2>
         <p>Personel listesi, görevleri, izin kullanımları ve hizmet sürelerini takip edin.</p>
       </button>
-      <button class="module-card disabled" id="card-stock" type="button" disabled>
+      <button class="module-card" id="card-stock" type="button">
         <svg class="m-icon" viewBox="0 0 24 24" fill="none"><path d="M3 7l9-4 9 4-9 4-9-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 7v10l9 4 9-4V7M12 11v10" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        <div class="m-tag">MODÜL 04 · YAKINDA</div>
+        <div class="m-tag">MODÜL 04</div>
         <h2>Stok Takibi</h2>
-        <p>Yedek parça ve malzeme stoklarının takibi — yakında eklenecek.</p>
+        <p>Yedek parça ve malzeme stok listelerini, fotoğraflarıyla birlikte takip edin.</p>
       </button>
       <button class="module-card" id="card-admin" type="button" hidden>
         <svg class="m-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -626,6 +632,36 @@ td.num{color:var(--fg-muted)}
     </div>
     <div class="card">
       <div id="agenda-list"></div>
+    </div>
+  </div>
+
+  <div id="view-stock" hidden>
+    <div class="topbar">
+      <button class="back-btn" id="btn-home-stock" type="button"><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Anasayfa</button>
+      <div class="title-block">
+        <h1 id="stock-title">STOK TAKİBİ</h1>
+        <div class="sub" id="stock-sub">Stok listeleri</div>
+      </div>
+    </div>
+
+    <div id="stock-lists-view">
+      <div class="admin-toolbar">
+        <div class="hint" id="stock-list-count">—</div>
+        <button class="btn btn-primary" id="btn-new-stock-list" type="button">+ Yeni Liste</button>
+      </div>
+      <div class="card">
+        <div id="stock-lists"></div>
+      </div>
+    </div>
+
+    <div id="stock-items-view" hidden>
+      <div class="admin-toolbar">
+        <button class="btn" id="btn-back-stock-lists" type="button">‹ Listelere Dön</button>
+        <button class="btn btn-primary" id="btn-new-stock-item" type="button">+ Yeni Kalem</button>
+      </div>
+      <div class="card">
+        <div id="stock-items"></div>
+      </div>
     </div>
   </div>
 
@@ -790,7 +826,7 @@ td.num{color:var(--fg-muted)}
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 11a4 4 0 1 0-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 14a6 6 0 0 1 5 5.91V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
     <div class="bb-tab-label">Personel</div>
   </button>
-  <button class="bb-tab disabled" id="bb-tab-stock" type="button" title="Yakında" disabled>
+  <button class="bb-tab" id="bb-tab-stock" type="button">
     <span class="bb-icon-wrap"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.8"/></svg></span>
     <div class="bb-tab-label">Stok</div>
   </button>
@@ -1716,11 +1752,12 @@ td.num{color:var(--fg-muted)}
     document.getElementById("view-service").hidden = view!=="service";
     document.getElementById("view-personnel").hidden = view!=="personnel";
     document.getElementById("view-agenda").hidden = view!=="agenda";
+    document.getElementById("view-stock").hidden = view!=="stock";
     document.getElementById("view-admin").hidden = view!=="admin";
     document.getElementById("view-login").hidden = view!=="login";
     document.getElementById("bottombar").style.display = (view==="login") ? "none" : "";
     window.scrollTo(0,0);
-    ["home","orders","service","personnel","agenda","admin"].forEach(function(v){
+    ["home","orders","service","personnel","agenda","stock","admin"].forEach(function(v){
       var tab = document.getElementById("bb-tab-"+v);
       if (tab) tab.classList.toggle("active", v===view);
     });
@@ -1728,6 +1765,7 @@ td.num{color:var(--fg-muted)}
     __activeView = view;
     if (view==="admin") loadAdminUsers();
     if (view==="agenda") loadAgendaItems();
+    if (view==="stock") showStockListsView();
     // Bir veri ekranına ilk kez geçildiğinde (veya geri dönüldüğünde) veriyi
     // hemen tazele; 20sn'lik arka plan döngüsü sadece o ekran açıkken çalışır.
     if (view!==prevView) {
@@ -1740,16 +1778,19 @@ td.num{color:var(--fg-muted)}
   document.getElementById("card-service").onclick=function(){ showView("service"); };
   document.getElementById("card-personnel").onclick=function(){ showView("personnel"); };
   document.getElementById("card-admin").onclick=function(){ showView("admin"); };
+  document.getElementById("card-stock").onclick=function(){ showView("stock"); };
   document.getElementById("btn-home-personnel").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-orders").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-service").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-admin").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-agenda").onclick=function(){ showView("home"); };
+  document.getElementById("btn-home-stock").onclick=function(){ showView("home"); };
   document.getElementById("bb-tab-home").onclick=function(){ showView("home"); };
   document.getElementById("bb-tab-orders").onclick=function(){ showView("orders"); };
   document.getElementById("bb-tab-service").onclick=function(){ showView("service"); };
   document.getElementById("bb-tab-personnel").onclick=function(){ showView("personnel"); };
   document.getElementById("bb-tab-agenda").onclick=function(){ showView("agenda"); };
+  document.getElementById("bb-tab-stock").onclick=function(){ showView("stock"); };
   document.getElementById("bb-tab-admin").onclick=function(){ showView("admin"); };
 
   /* ===================== Giriş / Oturum / Yönetim ===================== */
@@ -2079,7 +2120,8 @@ td.num{color:var(--fg-muted)}
   var PERM_GROUPS = [
     { title:'Üretim – Teslimat', perms:[['perm_uretim_view','Görüntüleme'],['perm_uretim_add','Ekleme'],['perm_uretim_edit','Düzenleme'],['perm_uretim_delete','Silme'],['perm_uretim_deliver','Teslim İşlemi']] },
     { title:'Bakım – Servis', perms:[['perm_servis_view','Görüntüleme'],['perm_servis_add','Ekleme'],['perm_servis_edit','Düzenleme'],['perm_servis_delete','Silme']] },
-    { title:'Personel', perms:[['perm_personel_view','Görüntüleme'],['perm_personel_add','Ekleme'],['perm_personel_edit','Düzenleme'],['perm_personel_delete','Silme'],['perm_personel_leave','İzin İşlemleri']] }
+    { title:'Personel', perms:[['perm_personel_view','Görüntüleme'],['perm_personel_add','Ekleme'],['perm_personel_edit','Düzenleme'],['perm_personel_delete','Silme'],['perm_personel_leave','İzin İşlemleri']] },
+    { title:'Stok', perms:[['perm_stok_view','Görüntüleme'],['perm_stok_add','Ekleme'],['perm_stok_edit','Düzenleme'],['perm_stok_delete','Silme']] }
   ];
   function openNewUserModal(){
     var permsHtml = PERM_GROUPS.map(function(g){
@@ -2220,6 +2262,257 @@ td.num{color:var(--fg-muted)}
     };
   }
   document.getElementById('btn-new-agenda').onclick = function(){ openAgendaModal(null); };
+
+  /* ---- Stok Takibi ---- */
+  var stkState = { currentListId: null, currentListName: '' };
+
+  function showStockListsView(){
+    stkState.currentListId = null;
+    document.getElementById('stock-lists-view').hidden = false;
+    document.getElementById('stock-items-view').hidden = true;
+    document.getElementById('stock-title').textContent = 'STOK TAKİBİ';
+    document.getElementById('stock-sub').textContent = 'Stok listeleri';
+    loadStockLists();
+  }
+
+  function loadStockLists(){
+    var list = document.getElementById('stock-lists');
+    list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    window.google.script.run
+      .withSuccessHandler(renderStockLists)
+      .withFailureHandler(function(err){
+        list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Listeler yüklenemedi.')+'</div>';
+      })
+      .getStockLists(getToken());
+  }
+
+  function renderStockLists(lists){
+    window.__stockListsCache = lists;
+    document.getElementById('stock-list-count').textContent = lists.length + ' liste';
+    var list = document.getElementById('stock-lists');
+    if (!lists.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz bir stok listesi yok. "+ Yeni Liste" ile başlayın.</div>'; return; }
+    list.innerHTML = lists.map(function(l){
+      var critBadge = l.criticalCount>0 ? ' <span class="stock-critical-pill">⚠ '+l.criticalCount+' kritik</span>' : '';
+      return '<div class="admin-user-row" data-list-id="'+escAdmin(l.id)+'" style="cursor:pointer">'+
+        '<div class="stock-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7l9-4 9 4-9 4-9-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 7v10l9 4 9-4V7M12 11v10" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>'+
+        '<div class="admin-user-main">'+
+          '<div class="admin-user-name">'+escAdmin(l.name)+critBadge+'</div>'+
+          '<div class="admin-user-sub">'+(l.itemCount||0)+' kalem'+(l.description?' · '+escAdmin(l.description):'')+'</div>'+
+        '</div>'+
+        '<div class="admin-user-actions">'+
+          '<button type="button" class="admin-mini-btn" data-act="open" data-id="'+escAdmin(l.id)+'">Aç</button>'+
+          '<button type="button" class="admin-mini-btn" data-act="edit" data-id="'+escAdmin(l.id)+'">Düzenle</button>'+
+          '<button type="button" class="admin-mini-btn danger" data-act="delete" data-id="'+escAdmin(l.id)+'">Sil</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.admin-user-row').forEach(function(row){
+      row.addEventListener('click', function(e){
+        if (e.target.closest('[data-act]')) return;
+        var l = (window.__stockListsCache||[]).filter(function(x){ return String(x.id)===String(row.getAttribute('data-list-id')); })[0];
+        if (l) openStockDetail(l);
+      });
+    });
+    list.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var act = btn.getAttribute('data-act');
+        var id = btn.getAttribute('data-id');
+        var l = (window.__stockListsCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+        if (act === 'open' && l) openStockDetail(l);
+        else if (act === 'edit' && l) openStockListModal(l);
+        else if (act === 'delete') {
+          if (!confirm('"'+(l?l.name:'')+'" listesini ve içindeki TÜM kalemleri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+          window.google.script.run.withSuccessHandler(loadStockLists).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteStockList(getToken(), id);
+        }
+      });
+    });
+  }
+
+  function openStockListModal(existing){
+    var isEdit = !!existing;
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true" style="max-width:380px">'+
+        '<h2>'+(isEdit?'Listeyi Düzenle':'Yeni Stok Listesi')+'</h2>'+
+        '<div class="field"><label>Liste Adı</label><input id="sl-name" type="text" value="'+(isEdit?escAdmin(existing.name):'')+'" maxlength="80" placeholder="Örn. Ana Depo, Servis Aracı 1"></div>'+
+        '<div class="field"><label>Açıklama (opsiyonel)</label><input id="sl-desc" type="text" value="'+(isEdit?escAdmin(existing.description||''):'')+'" maxlength="140"></div>'+
+        '<div class="err" id="sl-err" style="display:none"></div>'+
+        '<div class="modal-actions">'+
+          '<button type="button" class="btn" id="sl-cancel">Vazgeç</button>'+
+          '<button type="button" class="btn btn-primary" id="sl-save">Kaydet</button>'+
+        '</div>'+
+      '</div>'
+    );
+    document.getElementById('sl-cancel').onclick = closeModal;
+    document.getElementById('sl-save').onclick = function(){
+      var errBox = document.getElementById('sl-err');
+      var payload = { name: document.getElementById('sl-name').value.trim(), description: document.getElementById('sl-desc').value.trim() };
+      if (!payload.name) { errBox.textContent = 'Liste adı zorunludur.'; errBox.style.display='block'; return; }
+      var btn = this;
+      btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+      var runner = window.google.script.run
+        .withSuccessHandler(function(){ closeModal(); loadStockLists(); })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Kaydet';
+          errBox.textContent = (err && err.message) ? err.message : 'Kaydedilemedi, tekrar deneyin.';
+          errBox.style.display = 'block';
+        });
+      if (isEdit) runner.updateStockList(getToken(), existing.id, payload);
+      else runner.addStockList(getToken(), payload);
+    };
+  }
+  document.getElementById('btn-new-stock-list').onclick = function(){ openStockListModal(null); };
+  document.getElementById('btn-back-stock-lists').onclick = showStockListsView;
+
+  function openStockDetail(l){
+    stkState.currentListId = l.id;
+    stkState.currentListName = l.name;
+    document.getElementById('stock-lists-view').hidden = true;
+    document.getElementById('stock-items-view').hidden = false;
+    document.getElementById('stock-title').textContent = trUp(l.name);
+    document.getElementById('stock-sub').textContent = 'Stok Kalemleri';
+    loadStockItems(l.id);
+  }
+
+  function loadStockItems(listId){
+    var el = document.getElementById('stock-items');
+    el.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    window.google.script.run
+      .withSuccessHandler(renderStockItems)
+      .withFailureHandler(function(err){
+        el.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kalemler yüklenemedi.')+'</div>';
+      })
+      .getStockItems(getToken(), listId);
+  }
+
+  function renderStockItems(items){
+    window.__stockItemsCache = items;
+    var el = document.getElementById('stock-items');
+    if (!items.length) { el.innerHTML = '<div class="hint" style="padding:16px">Bu listede henüz kalem yok. "+ Yeni Kalem" ile ekleyin.</div>'; return; }
+    el.innerHTML = items.map(function(it){
+      var isCritical = it.minAdet !== '' && it.minAdet != null && Number(it.adet) < Number(it.minAdet);
+      var thumb = it.fotoUrl
+        ? '<img class="stock-thumb" src="'+escAdmin(it.fotoUrl)+'" alt="">'
+        : '<div class="stock-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>';
+      var codeBits = [];
+      if (it.stokNo) codeBits.push('Stok No: '+escAdmin(it.stokNo));
+      if (it.urunKodu) codeBits.push('Kod: '+escAdmin(it.urunKodu));
+      if (it.kullanimYeri) codeBits.push('Kullanım: '+escAdmin(it.kullanimYeri));
+      return '<div class="admin-user-row'+(isCritical?' stock-critical':'')+'">'+
+        thumb+
+        '<div class="admin-user-main">'+
+          '<div class="admin-user-name">'+escAdmin(it.tanimi)+
+            ' <span class="stock-qty">'+escAdmin(it.adet)+'</span> <span class="hint" style="font-weight:600">'+escAdmin(it.birim||'Adet')+'</span>'+
+            (isCritical?' <span class="stock-critical-pill">⚠ Kritik</span>':'')+
+          '</div>'+
+          '<div class="admin-user-sub">'+(codeBits.join(' · ')||'—')+'</div>'+
+        '</div>'+
+        '<div class="admin-user-actions">'+
+          '<button type="button" class="admin-mini-btn" data-act="edit" data-id="'+escAdmin(it.id)+'">Düzenle</button>'+
+          '<button type="button" class="admin-mini-btn danger" data-act="delete" data-id="'+escAdmin(it.id)+'">Sil</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    el.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var act = btn.getAttribute('data-act');
+        var id = btn.getAttribute('data-id');
+        var it = (window.__stockItemsCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+        if (act === 'edit' && it) openStockItemModal(it);
+        else if (act === 'delete') {
+          if (!confirm('Bu stok kalemini silmek istediğinize emin misiniz?')) return;
+          window.google.script.run.withSuccessHandler(function(){ loadStockItems(stkState.currentListId); }).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteStockItem(getToken(), id);
+        }
+      });
+    });
+  }
+
+  var STOCK_UNITS = ['Adet','Metre','Kg','Kutu','Paket','Litre','Çift','Rulo'];
+  function openStockItemModal(existing){
+    var isEdit = !!existing;
+    var unitOptions = STOCK_UNITS.map(function(u){ return '<option value="'+u+'">'; }).join('');
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true">'+
+        '<h2>'+(isEdit?'Kalemi Düzenle':'Yeni Stok Kalemi')+'</h2>'+
+        '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'+
+          '<div id="si-photo-preview" style="width:64px;height:64px;border-radius:12px;flex-shrink:0;overflow:hidden;background:var(--surface-2,var(--bg));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--fg-muted)">'+
+            (isEdit && existing.fotoUrl ? '<img src="'+escAdmin(existing.fotoUrl)+'" style="width:100%;height:100%;object-fit:cover">' : '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>')+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:6px">'+
+            '<label for="si-photo-input" class="btn" style="cursor:pointer;display:inline-block;font-size:12.5px">Fotoğraf Seç</label>'+
+            '<input id="si-photo-input" type="file" accept="image/*" style="display:none">'+
+            (isEdit && existing.fotoUrl ? '<button type="button" class="btn" id="si-photo-remove" style="font-size:12.5px">Kaldır</button>' : '')+
+          '</div>'+
+        '</div>'+
+        '<div class="field"><label>Tanımı</label><input id="si-tanimi" type="text" value="'+(isEdit?escAdmin(existing.tanimi):'')+'" maxlength="140" placeholder="Örn. 6mm Altıgen Cıvata"></div>'+
+        '<div style="display:flex;gap:10px">'+
+          '<div class="field" style="flex:1"><label>Stok No</label><input id="si-stokno" type="text" value="'+(isEdit?escAdmin(existing.stokNo||''):'')+'" maxlength="40"></div>'+
+          '<div class="field" style="flex:1"><label>Ürün Kodu</label><input id="si-urunkodu" type="text" value="'+(isEdit?escAdmin(existing.urunKodu||''):'')+'" maxlength="40"></div>'+
+        '</div>'+
+        '<div style="display:flex;gap:10px">'+
+          '<div class="field" style="flex:1"><label>Adet</label><input id="si-adet" type="number" step="any" value="'+(isEdit?escAdmin(existing.adet):'0')+'"></div>'+
+          '<div class="field" style="flex:1"><label>Birim</label><input id="si-birim" type="text" list="si-birim-list" value="'+(isEdit?escAdmin(existing.birim||'Adet'):'Adet')+'" maxlength="20"><datalist id="si-birim-list">'+unitOptions+'</datalist></div>'+
+        '</div>'+
+        '<div class="field"><label>Kritik Stok Eşiği (opsiyonel — bu değerin altına düşünce uyarı gösterilir)</label><input id="si-minadet" type="number" step="any" value="'+(isEdit&&existing.minAdet!==''&&existing.minAdet!=null?escAdmin(existing.minAdet):'')+'" placeholder="Örn. 5"></div>'+
+        '<div class="field"><label>Nerede Kullanılacağı</label><input id="si-kullanim" type="text" value="'+(isEdit?escAdmin(existing.kullanimYeri||''):'')+'" maxlength="140" placeholder="Örn. Üretim hattı, Servis aracı 2"></div>'+
+        '<div class="err" id="si-err" style="display:none"></div>'+
+        '<div class="modal-actions">'+
+          '<button type="button" class="btn" id="si-cancel">Vazgeç</button>'+
+          '<button type="button" class="btn btn-primary" id="si-save">Kaydet</button>'+
+        '</div>'+
+      '</div>'
+    );
+    var pendingPhoto = null, removePhoto = false;
+    document.getElementById('si-cancel').onclick = closeModal;
+    document.getElementById('si-photo-input').addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        pendingPhoto = { base64: String(reader.result).split(',')[1], mimeType: file.type, filename: file.name };
+        removePhoto = false;
+        var preview = document.getElementById('si-photo-preview');
+        if (preview) preview.innerHTML = '<img src="'+reader.result+'" style="width:100%;height:100%;object-fit:cover">';
+      };
+      reader.readAsDataURL(file);
+    });
+    var removeBtn = document.getElementById('si-photo-remove');
+    if (removeBtn) removeBtn.onclick = function(){
+      removePhoto = true; pendingPhoto = null;
+      var preview = document.getElementById('si-photo-preview');
+      if (preview) preview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+      removeBtn.remove();
+    };
+    document.getElementById('si-save').onclick = function(){
+      var errBox = document.getElementById('si-err');
+      var tanimi = document.getElementById('si-tanimi').value.trim();
+      if (!tanimi) { errBox.textContent = 'Tanım zorunludur.'; errBox.style.display='block'; return; }
+      var minAdetVal = document.getElementById('si-minadet').value;
+      var payload = {
+        tanimi: tanimi,
+        stokNo: document.getElementById('si-stokno').value.trim(),
+        urunKodu: document.getElementById('si-urunkodu').value.trim(),
+        adet: document.getElementById('si-adet').value,
+        birim: document.getElementById('si-birim').value.trim() || 'Adet',
+        minAdet: minAdetVal === '' ? '' : minAdetVal,
+        kullanimYeri: document.getElementById('si-kullanim').value.trim()
+      };
+      if (pendingPhoto) payload.photo = pendingPhoto;
+      if (removePhoto) payload.removePhoto = true;
+      var btn = this;
+      btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+      var runner = window.google.script.run
+        .withSuccessHandler(function(){ closeModal(); loadStockItems(stkState.currentListId); })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Kaydet';
+          errBox.textContent = (err && err.message) ? err.message : 'Kaydedilemedi, tekrar deneyin.';
+          errBox.style.display = 'block';
+        });
+      if (isEdit) runner.updateStockItem(getToken(), existing.id, payload);
+      else runner.addStockItem(getToken(), stkState.currentListId, payload);
+    };
+  }
+  document.getElementById('btn-new-stock-item').onclick = function(){ openStockItemModal(null); };
 
   boot();
 
