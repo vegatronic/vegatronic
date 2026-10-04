@@ -2,8 +2,15 @@
 // böylece uygulama "kurulabilir" olur ve çevrimdışı/yavaş bağlantıda da açılır.
 // ÖNEMLİ: Google Apps Script'e giden veri çağrıları (POST) hiçbir zaman
 // önbelleğe alınmaz veya buradan yakalanmaz — her zaman doğrudan ağa gider.
+//
+// Bu dosya AYNI ZAMANDA Firebase Cloud Messaging'in arkaplan bildirimlerini de
+// yönetir (uygulama kapalıyken/arkaplandayken gelen anlık bildirimler).
+// Firebase için AYRI bir service worker dosyası KULLANILMIYOR — tarayıcıda
+// aynı adres (scope) için sadece bir service worker aktif olabilir, iki ayrı
+// dosya kaydedilirse biri diğerini devre dışı bırakır. Bu yüzden ikisi tek
+// dosyada birleştirildi.
 
-var CACHE_NAME = "vega-takip-v3";
+var CACHE_NAME = "vega-takip-v4";
 var ASSETS = [
   "./",
   "./index.html",
@@ -68,6 +75,56 @@ self.addEventListener("fetch", function (event) {
         return res;
       }).catch(function () { return cached; });
       return cached || network;
+    })
+  );
+});
+
+// ---------- Firebase Cloud Messaging (arkaplan bildirimleri) ----------
+// Firebase konsolu → Proje Ayarları → Genel sekmesindeki "Web app" config'ini
+// buraya yapıştırın. firebase-init.js'teki değerlerle AYNI olmalı.
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
+
+  var firebaseConfig = {
+    apiKey: 'FIREBASE_API_KEY',
+    authDomain: 'FIREBASE_AUTH_DOMAIN',
+    projectId: 'FIREBASE_PROJECT_ID',
+    storageBucket: 'FIREBASE_STORAGE_BUCKET',
+    messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID',
+    appId: 'FIREBASE_APP_ID'
+  };
+
+  if (firebaseConfig.apiKey !== 'FIREBASE_API_KEY') {
+    firebase.initializeApp(firebaseConfig);
+    var messaging = firebase.messaging();
+
+    // Uygulama kapalıyken/arkaplandayken gelen bildirimi göster.
+    messaging.onBackgroundMessage(function (payload) {
+      var title = (payload.notification && payload.notification.title) || 'Vega Takip';
+      var body = (payload.notification && payload.notification.body) || '';
+      self.registration.showNotification(title, {
+        body: body,
+        icon: './icons/icon-192.png',
+        badge: './icons/favicon-32.png',
+        data: payload.data || {}
+      });
+    });
+  }
+} catch (e) {
+  // Firebase henüz kurulmadıysa (config placeholder) sessizce geç —
+  // uygulama kabuğu önbellekleme (yukarıdaki) yine normal çalışır.
+}
+
+// Bildirime tıklanınca uygulamayı aç / öne getir.
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        if ('focus' in clientList[i]) return clientList[i].focus();
+      }
+      if (clients.openWindow) return clients.openWindow('./');
     })
   );
 });

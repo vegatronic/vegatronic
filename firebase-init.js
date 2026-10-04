@@ -25,13 +25,19 @@ function vegaInitFirebase() {
   vegaMessaging = firebase.messaging();
 }
 
-// "Bildirimleri Etkinleştir" butonuna bağlayın.
+// "Bildirimleri Aç" butonuna bağlayın.
 // Döndürdüğü promise başarılı olursa cihaz artık bildirim alabilir demektir.
+// NOT: Ayrı bir "firebase-messaging-sw.js" KAYDETMİYORUZ — Firebase'in
+// arkaplan bildirim mantığı zaten ana "service-worker.js" içine taşındı
+// (aynı adres/scope'ta iki service worker birbirini devre dışı bırakır).
 function vegaEnablePushNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     return Promise.reject(new Error('Bu tarayıcı cihaz bildirimlerini desteklemiyor.'));
   }
-  return navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function (registration) {
+  if (!window.getToken || !getToken()) {
+    return Promise.reject(new Error('Önce giriş yapmalısınız.'));
+  }
+  return navigator.serviceWorker.ready.then(function (registration) {
     vegaInitFirebase();
     return Notification.requestPermission().then(function (permission) {
       if (permission !== 'granted') throw new Error('Bildirim izni verilmedi.');
@@ -43,7 +49,7 @@ function vegaEnablePushNotifications() {
       window.google.script.run
         .withSuccessHandler(function () { resolve(fcmToken); })
         .withFailureHandler(reject)
-        .registerFcmToken(fcmToken);
+        .registerFcmToken(getToken(), fcmToken);
     });
   }).then(function (fcmToken) {
     try { localStorage.setItem('vega_push_enabled', '1'); } catch (e) {}
@@ -52,7 +58,7 @@ function vegaEnablePushNotifications() {
 }
 
 // Uygulama ön plandayken (açıkken) gelen bildirimleri de göster.
-// Arka plan/kapalıyken firebase-messaging-sw.js zaten gösteriyor.
+// Arka plan/kapalıyken ana service-worker.js zaten gösteriyor.
 window.addEventListener('DOMContentLoaded', function () {
   try {
     if (localStorage.getItem('vega_push_enabled') === '1') {
@@ -61,7 +67,7 @@ window.addEventListener('DOMContentLoaded', function () {
         var title = (payload.notification && payload.notification.title) || 'Vega Takip';
         var body = (payload.notification && payload.notification.body) || '';
         if (Notification.permission === 'granted') {
-          new Notification(title, { body: body, icon: '/icons/icon-192.png' });
+          new Notification(title, { body: body, icon: './icons/icon-192.png' });
         }
         // Aynı anda uygulama-içi bildirim zilini de tazele (varsa):
         if (window.vegaRefreshNotifications) window.vegaRefreshNotifications();
