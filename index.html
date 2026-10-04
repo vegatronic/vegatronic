@@ -233,6 +233,7 @@ td.num{color:var(--fg-muted)}
 #card-service .m-icon{background:var(--blue-bg);color:var(--blue)}
 #card-personnel .m-icon{background:var(--success-bg);color:var(--success)}
 #card-stock .m-icon{background:var(--warning-bg);color:var(--warning)}
+#card-agenda .m-icon{background:var(--danger-bg);color:var(--danger)}
 .module-card h2{font-size:16px;font-weight:700}
 .module-card p{margin:0;color:var(--fg-muted);font-size:13px;line-height:1.5}
 .module-card .m-tag{font-size:10.5px;letter-spacing:.04em;color:var(--fg-muted);font-weight:700}
@@ -572,6 +573,12 @@ td.num{color:var(--fg-muted)}
         <div class="m-tag">MODÜL 04</div>
         <h2>Stok Takibi</h2>
         <p>Yedek parça ve malzeme stok listelerini, fotoğraflarıyla birlikte takip edin.</p>
+      </button>
+      <button class="module-card" id="card-agenda" type="button">
+        <svg class="m-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="14" r="1.2" fill="currentColor"/><circle cx="12" cy="14" r="1.2" fill="currentColor"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg>
+        <div class="m-tag">MODÜL 05</div>
+        <h2>Ajanda</h2>
+        <p>Kişisel notlarınızı ve hatırlatmalarınızı tarih ve saatiyle birlikte kaydedin.</p>
       </button>
       <button class="module-card" id="card-admin" type="button" hidden>
         <svg class="m-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1785,6 +1792,7 @@ td.num{color:var(--fg-muted)}
   document.getElementById("card-personnel").onclick=function(){ showView("personnel"); };
   document.getElementById("card-admin").onclick=function(){ showView("admin"); };
   document.getElementById("card-stock").onclick=function(){ showView("stock"); };
+  document.getElementById("card-agenda").onclick=function(){ showView("agenda"); };
   document.getElementById("btn-home-personnel").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-orders").onclick=function(){ showView("home"); };
   document.getElementById("btn-home-service").onclick=function(){ showView("home"); };
@@ -1825,7 +1833,7 @@ td.num{color:var(--fg-muted)}
     document.getElementById('bb-tab-admin').hidden = !user.isAdmin;
     document.getElementById('bb-tab-agenda').hidden = false;
     var sub = document.getElementById('home-sub');
-    if (sub) sub.textContent = 'Hoş geldin, ' + (user.fullName || user.username) + ' — modül seçin';
+    if (sub) sub.textContent = 'Hoşgeldin, ' + (user.fullName || user.username) + ' — modül seçin';
     if (typeof refreshProfileAvatarBadge === 'function') refreshProfileAvatarBadge();
   }
   function boot(){
