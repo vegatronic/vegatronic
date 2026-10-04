@@ -1801,6 +1801,9 @@ td.num{color:var(--fg-muted)}
   /* ===================== Giriş / Oturum / Yönetim ===================== */
   var currentUser = null;
   function getToken(){ try { return localStorage.getItem('vega_session_token'); } catch(e){ return null; } }
+  // firebase-init.js ana script'in DIŞINDA ayrı bir <script> olarak yüklendiği için
+  // getToken'ı window üzerinden de erişilebilir yapıyoruz (push bildirimleri bunu kullanıyor).
+  window.getToken = getToken;
   function getStoredUser(){
     try { var raw = localStorage.getItem('vega_user'); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
   }
