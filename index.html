@@ -355,6 +355,11 @@ td.num{color:var(--fg-muted)}
 .stock-qty{font-weight:800;font-variant-numeric:tabular-nums}
 .stock-critical-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--danger-bg,#fde3e1);color:var(--danger,#E2493D)}
 .admin-user-row.stock-critical{background:var(--danger-bg,#fde3e1)}
+.stock-items-table td{vertical-align:middle}
+.stock-items-table tr.stock-critical-row td{background:var(--danger-bg,#fde3e1)}
+.stock-item-cell{display:flex;align-items:center;gap:10px}
+.stock-item-name{font-weight:700}
+.stock-item-no{font-size:11px;color:var(--fg-muted);font-variant-numeric:tabular-nums}
 .admin-user-main{flex:1;min-width:0}
 .admin-user-name{font-weight:700;font-size:13.5px}
 .admin-user-sub{font-size:11.5px;color:var(--fg-muted)}
@@ -2389,29 +2394,29 @@ td.num{color:var(--fg-muted)}
     window.__stockItemsCache = items;
     var el = document.getElementById('stock-items');
     if (!items.length) { el.innerHTML = '<div class="hint" style="padding:16px">Bu listede henüz kalem yok. "+ Yeni Kalem" ile ekleyin.</div>'; return; }
-    el.innerHTML = items.map(function(it){
+    var rows = items.map(function(it){
       var isCritical = it.minAdet !== '' && it.minAdet != null && Number(it.adet) < Number(it.minAdet);
       var thumb = it.fotoUrl
         ? '<img class="stock-thumb" src="'+escAdmin(it.fotoUrl)+'" alt="">'
         : '<div class="stock-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>';
-      var codeBits = [];
-      if (it.stokNo) codeBits.push('Stok No: '+escAdmin(it.stokNo));
-      if (it.urunKodu) codeBits.push('Kod: '+escAdmin(it.urunKodu));
-      return '<div class="admin-user-row'+(isCritical?' stock-critical':'')+'">'+
-        thumb+
-        '<div class="admin-user-main">'+
-          '<div class="admin-user-name">'+escAdmin(it.tanimi)+
-            ' <span class="stock-qty">'+escAdmin(it.adet)+'</span> <span class="hint" style="font-weight:600">'+escAdmin(it.birim||'Adet')+'</span>'+
-            (isCritical?' <span class="stock-critical-pill">⚠ Kritik</span>':'')+
-          '</div>'+
-          '<div class="admin-user-sub">'+(codeBits.join(' · ')||'—')+'</div>'+
-        '</div>'+
-        '<div class="admin-user-actions">'+
+      return '<tr'+(isCritical?' class="stock-critical-row"':'')+'>'+
+        '<td><div class="stock-item-cell">'+thumb+
+          '<div><div class="stock-item-name">'+escAdmin(it.tanimi)+'</div>'+
+          (it.stokNo?'<div class="stock-item-no">Stok No: '+escAdmin(it.stokNo)+'</div>':'')+
+          '</div></div></td>'+
+        '<td>'+(it.marka?escAdmin(it.marka):'—')+'</td>'+
+        '<td>'+(it.urunKodu?escAdmin(it.urunKodu):'—')+'</td>'+
+        '<td class="mono num">'+escAdmin(it.adet)+' '+escAdmin(it.birim||'Adet')+(isCritical?' <span class="stock-critical-pill">⚠ Kritik</span>':'')+'</td>'+
+        '<td class="mono num">'+(it.kullanimAdeti!==''&&it.kullanimAdeti!=null?escAdmin(it.kullanimAdeti):'—')+'</td>'+
+        '<td><div class="row-actions">'+
           '<button type="button" class="admin-mini-btn" data-act="edit" data-id="'+escAdmin(it.id)+'">Düzenle</button>'+
           '<button type="button" class="admin-mini-btn danger" data-act="delete" data-id="'+escAdmin(it.id)+'">Sil</button>'+
-        '</div>'+
-      '</div>';
+        '</div></td>'+
+      '</tr>';
     }).join('');
+    el.innerHTML = '<div class="table-wrap"><table class="stock-items-table"><thead><tr>'+
+      '<th>ÜRÜN</th><th>MARKA</th><th>ÜRÜN KODU</th><th>ADET</th><th>KULLANIM ADETİ (1 ÜRÜNDE)</th><th></th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
     el.querySelectorAll('[data-act]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
@@ -2445,11 +2450,15 @@ td.num{color:var(--fg-muted)}
         '</div>'+
         (isEdit && existing.stokNo ? '<div class="hint" style="margin-bottom:10px">Stok No: <strong>'+escAdmin(existing.stokNo)+'</strong> (otomatik)</div>' : '')+
         '<div class="field"><label>Tanımı</label><input id="si-tanimi" type="text" value="'+(isEdit?escAdmin(existing.tanimi):'')+'" maxlength="140" placeholder="Örn. Üretim hattı — 6mm Altıgen Cıvata"></div>'+
-        '<div class="field"><label>Ürün Kodu</label><input id="si-urunkodu" type="text" value="'+(isEdit?escAdmin(existing.urunKodu||''):'')+'" maxlength="40"></div>'+
+        '<div style="display:flex;gap:10px">'+
+          '<div class="field" style="flex:1"><label>Marka</label><input id="si-marka" type="text" value="'+(isEdit?escAdmin(existing.marka||''):'')+'" maxlength="60"></div>'+
+          '<div class="field" style="flex:1"><label>Ürün Kodu</label><input id="si-urunkodu" type="text" value="'+(isEdit?escAdmin(existing.urunKodu||''):'')+'" maxlength="40"></div>'+
+        '</div>'+
         '<div style="display:flex;gap:10px">'+
           '<div class="field" style="flex:1"><label>Adet</label><input id="si-adet" type="number" step="any" value="'+(isEdit?escAdmin(existing.adet):'0')+'"></div>'+
           '<div class="field" style="flex:1"><label>Birim</label><input id="si-birim" type="text" list="si-birim-list" value="'+(isEdit?escAdmin(existing.birim||'Adet'):'Adet')+'" maxlength="20"><datalist id="si-birim-list">'+unitOptions+'</datalist></div>'+
         '</div>'+
+        '<div class="field"><label>Kullanım Adeti (1 üründe kaç adet kullanılıyor — opsiyonel)</label><input id="si-kullanimadeti" type="number" step="any" value="'+(isEdit&&existing.kullanimAdeti!==''&&existing.kullanimAdeti!=null?escAdmin(existing.kullanimAdeti):'')+'" placeholder="Örn. 4"></div>'+
         '<div class="field"><label>Kritik Stok Eşiği (opsiyonel — bu değerin altına düşünce uyarı gösterilir)</label><input id="si-minadet" type="number" step="any" value="'+(isEdit&&existing.minAdet!==''&&existing.minAdet!=null?escAdmin(existing.minAdet):'')+'" placeholder="Örn. 5"></div>'+
         '<div class="err" id="si-err" style="display:none"></div>'+
         '<div class="modal-actions">'+
@@ -2484,11 +2493,14 @@ td.num{color:var(--fg-muted)}
       var tanimi = document.getElementById('si-tanimi').value.trim();
       if (!tanimi) { errBox.textContent = 'Tanım zorunludur.'; errBox.style.display='block'; return; }
       var minAdetVal = document.getElementById('si-minadet').value;
+      var kullanimAdetiVal = document.getElementById('si-kullanimadeti').value;
       var payload = {
         tanimi: tanimi,
+        marka: document.getElementById('si-marka').value.trim(),
         urunKodu: document.getElementById('si-urunkodu').value.trim(),
         adet: document.getElementById('si-adet').value,
         birim: document.getElementById('si-birim').value.trim() || 'Adet',
+        kullanimAdeti: kullanimAdetiVal === '' ? '' : kullanimAdetiVal,
         minAdet: minAdetVal === '' ? '' : minAdetVal
       };
       if (pendingPhoto) payload.photo = pendingPhoto;
