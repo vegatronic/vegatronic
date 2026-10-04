@@ -1752,6 +1752,20 @@ td.num{color:var(--fg-muted)}
   }
   loadOrders();
   setInterval(function(){ if (__activeView==="orders") loadOrders(); }, 20000);
+  // Üretim sayfası neden "anında" açılıyor? Çünkü verisi uygulama açılır
+  // açılmaz, kullanıcı o sayfaya hiç girmeden, arka planda önceden
+  // çekiliyor — sayfaya girdiğinizde zaten hazır veri ekrana basılıyor ve
+  // arkadan sessizce tazeleniyor. Stok/Ajanda/Yönetim sayfaları bunu
+  // yapmıyordu, bu yüzden her girişte sıfırdan bekliyordunuz. Aynı
+  // önceden-yükleme mantığını onlara da uyguluyoruz:
+  try {
+    if (getToken()) {
+      if (typeof loadStockLists === 'function') loadStockLists();
+      if (typeof loadAgendaItems === 'function') loadAgendaItems();
+      var __bootUser = getStoredUser();
+      if (__bootUser && __bootUser.isAdmin && typeof loadAdminUsers === 'function') loadAdminUsers();
+    }
+  } catch (e) {}
 
   /* ===================== Anasayfa / Modül Yönlendirme ===================== */
 
@@ -2077,11 +2091,14 @@ td.num{color:var(--fg-muted)}
   function escAdmin(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function loadAdminUsers(){
     var list = document.getElementById('admin-user-list');
-    list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    if (window.__adminUsersCache) renderAdminUsers(window.__adminUsersCache);
+    else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
       .withSuccessHandler(renderAdminUsers)
       .withFailureHandler(function(err){
-        list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kullanıcılar yüklenemedi.')+'</div>';
+        if (!window.__adminUsersCache) {
+          list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kullanıcılar yüklenemedi.')+'</div>';
+        }
       })
       .adminListUsers(getToken());
   }
@@ -2238,11 +2255,14 @@ td.num{color:var(--fg-muted)}
   }
   function loadAgendaItems(){
     var list = document.getElementById('agenda-list');
-    list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    if (window.__agendaCache) renderAgendaList(window.__agendaCache);
+    else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
       .withSuccessHandler(renderAgendaList)
       .withFailureHandler(function(err){
-        list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Ajanda yüklenemedi.')+'</div>';
+        if (!window.__agendaCache) {
+          list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Ajanda yüklenemedi.')+'</div>';
+        }
       })
       .getAgendaItems(getToken());
   }
@@ -2346,11 +2366,18 @@ td.num{color:var(--fg-muted)}
 
   function loadStockLists(){
     var list = document.getElementById('stock-lists');
-    list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    // Daha önce yüklenmiş bir önbellek varsa (örn. uygulama açılırken arka
+    // planda önceden çekilmişse) hemen onu göster — kullanıcı "Yükleniyor…"
+    // beklemez. Arkadan güncel veri sessizce çekilir ve hazır olunca ekran
+    // farkında olmadan tazelenir (Üretim/Personel sayfalarıyla aynı mantık).
+    if (window.__stockListsCache) renderStockLists(window.__stockListsCache);
+    else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
       .withSuccessHandler(renderStockLists)
       .withFailureHandler(function(err){
-        list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Listeler yüklenemedi.')+'</div>';
+        if (!window.__stockListsCache) {
+          list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Listeler yüklenemedi.')+'</div>';
+        }
       })
       .getStockLists(getToken());
   }
@@ -2445,11 +2472,21 @@ td.num{color:var(--fg-muted)}
 
   function loadStockItems(listId){
     var el = document.getElementById('stock-items');
-    el.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
+    window.__stockItemsCacheByList = window.__stockItemsCacheByList || {};
+    var cached = window.__stockItemsCacheByList[listId];
+    if (cached) renderStockItems(cached);
+    else el.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(renderStockItems)
+      .withSuccessHandler(function(items){
+        window.__stockItemsCacheByList[listId] = items;
+        // Kullanıcı bu arada başka bir listeye geçmiş olabilir; sadece hâlâ
+        // açık olan liste için gelen sonucu ekrana basıyoruz.
+        if (stkState.currentListId === listId) renderStockItems(items);
+      })
       .withFailureHandler(function(err){
-        el.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kalemler yüklenemedi.')+'</div>';
+        if (!cached) {
+          el.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kalemler yüklenemedi.')+'</div>';
+        }
       })
       .getStockItems(getToken(), listId);
   }
