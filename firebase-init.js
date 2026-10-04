@@ -5,18 +5,16 @@
 //   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 //   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
 
-// ↓↓↓ Firebase konsolu → Proje Ayarları → Genel sekmesindeki "Web app" config'ini buraya yapıştırın ↓↓↓
 var firebaseConfig = {
-  apiKey: 'FIREBASE_API_KEY',
-  authDomain: 'FIREBASE_AUTH_DOMAIN',
-  projectId: 'FIREBASE_PROJECT_ID',
-  storageBucket: 'FIREBASE_STORAGE_BUCKET',
-  messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID',
-  appId: 'FIREBASE_APP_ID'
+  apiKey: 'AIzaSyC3arUWoYmBqjl2hKN2DWSyUyC85-39V30',
+  authDomain: 'vega-takip.firebaseapp.com',
+  projectId: 'vega-takip',
+  storageBucket: 'vega-takip.firebasestorage.app',
+  messagingSenderId: '677746478495',
+  appId: '1:677746478495:web:8e38e916a601defa4b01aa'
 };
 // Firebase konsolu → Proje Ayarları → Cloud Messaging → "Web Push sertifikaları" → Anahtar çifti
-var VAPID_KEY = 'FIREBASE_VAPID_PUBLIC_KEY';
-// ↑↑↑ ↑↑↑
+var VAPID_KEY = 'FIREBASE_VAPID_PUBLIC_KEY'; // TODO: VAPID anahtarı gelince burayı doldur
 
 var vegaMessaging = null;
 function vegaInitFirebase() {

@@ -87,12 +87,12 @@ try {
   importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
   var firebaseConfig = {
-    apiKey: 'FIREBASE_API_KEY',
-    authDomain: 'FIREBASE_AUTH_DOMAIN',
-    projectId: 'FIREBASE_PROJECT_ID',
-    storageBucket: 'FIREBASE_STORAGE_BUCKET',
-    messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID',
-    appId: 'FIREBASE_APP_ID'
+    apiKey: 'AIzaSyC3arUWoYmBqjl2hKN2DWSyUyC85-39V30',
+    authDomain: 'vega-takip.firebaseapp.com',
+    projectId: 'vega-takip',
+    storageBucket: 'vega-takip.firebasestorage.app',
+    messagingSenderId: '677746478495',
+    appId: '1:677746478495:web:8e38e916a601defa4b01aa'
   };
 
   if (firebaseConfig.apiKey !== 'FIREBASE_API_KEY') {
