@@ -14,7 +14,7 @@ var firebaseConfig = {
   appId: '1:677746478495:web:8e38e916a601defa4b01aa'
 };
 // Firebase konsolu → Proje Ayarları → Cloud Messaging → "Web Push sertifikaları" → Anahtar çifti
-var VAPID_KEY = 'FIREBASE_VAPID_PUBLIC_KEY'; // TODO: VAPID anahtarı gelince burayı doldur
+var VAPID_KEY = 'BPYqXCfr0Dz96UVjny6yg2r6BgYzWBy4RAW5yTQ5efCzgwVWw6vKsmz00kMnB1YkoEZu6YvKCMQst4YLRjg9Tf0';
 
 var vegaMessaging = null;
 function vegaInitFirebase() {
