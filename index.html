@@ -1758,12 +1758,19 @@ td.num{color:var(--fg-muted)}
   // arkadan sessizce tazeleniyor. Stok/Ajanda/Yönetim sayfaları bunu
   // yapmıyordu, bu yüzden her girişte sıfırdan bekliyordunuz. Aynı
   // önceden-yükleme mantığını onlara da uyguluyoruz:
+  // Ölçümle görüldü: açılışta tüm sayfaların verisini AYNI ANDA istemek
+  // (Üretim+Servis+Personel+Stok+Ajanda+Yönetim = 6 istek birden) sunucu
+  // tarafında kuyruklanmaya/çakışmaya yol açıp tek tek her birini
+  // yavaşlatabiliyor. Bu yüzden yeni eklenen 3 isteği küçük aralıklarla
+  // birbirinin arkasına diziyoruz — toplam yük aynı ama aynı anda değil.
   try {
     if (getToken()) {
-      if (typeof loadStockLists === 'function') loadStockLists();
-      if (typeof loadAgendaItems === 'function') loadAgendaItems();
-      var __bootUser = getStoredUser();
-      if (__bootUser && __bootUser.isAdmin && typeof loadAdminUsers === 'function') loadAdminUsers();
+      setTimeout(function(){ if (typeof loadStockLists === 'function') loadStockLists(); }, 350);
+      setTimeout(function(){ if (typeof loadAgendaItems === 'function') loadAgendaItems(); }, 700);
+      setTimeout(function(){
+        var __bootUser = getStoredUser();
+        if (__bootUser && __bootUser.isAdmin && typeof loadAdminUsers === 'function') loadAdminUsers();
+      }, 1050);
     }
   } catch (e) {}
 
