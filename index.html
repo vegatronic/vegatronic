@@ -2397,7 +2397,6 @@ td.num{color:var(--fg-muted)}
       var codeBits = [];
       if (it.stokNo) codeBits.push('Stok No: '+escAdmin(it.stokNo));
       if (it.urunKodu) codeBits.push('Kod: '+escAdmin(it.urunKodu));
-      if (it.kullanimYeri) codeBits.push('Kullanım: '+escAdmin(it.kullanimYeri));
       return '<div class="admin-user-row'+(isCritical?' stock-critical':'')+'">'+
         thumb+
         '<div class="admin-user-main">'+
@@ -2444,17 +2443,14 @@ td.num{color:var(--fg-muted)}
             (isEdit && existing.fotoUrl ? '<button type="button" class="btn" id="si-photo-remove" style="font-size:12.5px">Kaldır</button>' : '')+
           '</div>'+
         '</div>'+
-        '<div class="field"><label>Tanımı</label><input id="si-tanimi" type="text" value="'+(isEdit?escAdmin(existing.tanimi):'')+'" maxlength="140" placeholder="Örn. 6mm Altıgen Cıvata"></div>'+
-        '<div style="display:flex;gap:10px">'+
-          '<div class="field" style="flex:1"><label>Stok No</label><input id="si-stokno" type="text" value="'+(isEdit?escAdmin(existing.stokNo||''):'')+'" maxlength="40"></div>'+
-          '<div class="field" style="flex:1"><label>Ürün Kodu</label><input id="si-urunkodu" type="text" value="'+(isEdit?escAdmin(existing.urunKodu||''):'')+'" maxlength="40"></div>'+
-        '</div>'+
+        (isEdit && existing.stokNo ? '<div class="hint" style="margin-bottom:10px">Stok No: <strong>'+escAdmin(existing.stokNo)+'</strong> (otomatik)</div>' : '')+
+        '<div class="field"><label>Tanımı</label><input id="si-tanimi" type="text" value="'+(isEdit?escAdmin(existing.tanimi):'')+'" maxlength="140" placeholder="Örn. Üretim hattı — 6mm Altıgen Cıvata"></div>'+
+        '<div class="field"><label>Ürün Kodu</label><input id="si-urunkodu" type="text" value="'+(isEdit?escAdmin(existing.urunKodu||''):'')+'" maxlength="40"></div>'+
         '<div style="display:flex;gap:10px">'+
           '<div class="field" style="flex:1"><label>Adet</label><input id="si-adet" type="number" step="any" value="'+(isEdit?escAdmin(existing.adet):'0')+'"></div>'+
           '<div class="field" style="flex:1"><label>Birim</label><input id="si-birim" type="text" list="si-birim-list" value="'+(isEdit?escAdmin(existing.birim||'Adet'):'Adet')+'" maxlength="20"><datalist id="si-birim-list">'+unitOptions+'</datalist></div>'+
         '</div>'+
         '<div class="field"><label>Kritik Stok Eşiği (opsiyonel — bu değerin altına düşünce uyarı gösterilir)</label><input id="si-minadet" type="number" step="any" value="'+(isEdit&&existing.minAdet!==''&&existing.minAdet!=null?escAdmin(existing.minAdet):'')+'" placeholder="Örn. 5"></div>'+
-        '<div class="field"><label>Nerede Kullanılacağı</label><input id="si-kullanim" type="text" value="'+(isEdit?escAdmin(existing.kullanimYeri||''):'')+'" maxlength="140" placeholder="Örn. Üretim hattı, Servis aracı 2"></div>'+
         '<div class="err" id="si-err" style="display:none"></div>'+
         '<div class="modal-actions">'+
           '<button type="button" class="btn" id="si-cancel">Vazgeç</button>'+
@@ -2490,12 +2486,10 @@ td.num{color:var(--fg-muted)}
       var minAdetVal = document.getElementById('si-minadet').value;
       var payload = {
         tanimi: tanimi,
-        stokNo: document.getElementById('si-stokno').value.trim(),
         urunKodu: document.getElementById('si-urunkodu').value.trim(),
         adet: document.getElementById('si-adet').value,
         birim: document.getElementById('si-birim').value.trim() || 'Adet',
-        minAdet: minAdetVal === '' ? '' : minAdetVal,
-        kullanimYeri: document.getElementById('si-kullanim').value.trim()
+        minAdet: minAdetVal === '' ? '' : minAdetVal
       };
       if (pendingPhoto) payload.photo = pendingPhoto;
       if (removePhoto) payload.removePhoto = true;
