@@ -920,6 +920,37 @@ td.num{color:var(--fg-muted)}
   }
   window.__vegaBootLoad = function(){ bootRun(); };
 
+  /* ---- İyimser yazma: kullanıcı sunucuyu BEKLEMEZ ----
+     Ekle/değiştir/sil yapınca liste ekranda anında güncellenir, modal hemen
+     kapanır; sunucu kaydı arkadan yapılır. Hata olursa uyarı çıkar ve sunucudaki
+     gerçek veri geri yüklenir. Sunucu cevabı gelene kadar eski veriyle üstüne
+     yazılmaması için (__pend) arka plan yenilemeleri bekletilir. */
+  var __pend = {};
+  function isPend(k){ return (__pend[k]||0) > 0; }
+  function isTmp(x){ return !!x && String(x.id).indexOf('tmp_') === 0; }
+  function findReal(list, id){ var r = list.find(function(o){ return o.id === id; }); return isTmp(r) ? undefined : r; }
+  function patchById(list, id, patch){ return list.map(function(o){ return String(o.id) === String(id) ? Object.assign({}, o, patch) : o; }); }
+  function tmpId(){ return 'tmp_' + Date.now() + '_' + Math.floor(Math.random()*1000); }
+  function showToast(msg){
+    try {
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);max-width:90%;background:var(--danger,#E2493D);color:#fff;padding:10px 16px;border-radius:12px;font:600 14px/1.3 system-ui,sans-serif;z-index:100000;box-shadow:0 6px 24px rgba(0,0,0,.25)';
+      document.body.appendChild(t);
+      setTimeout(function(){ t.remove(); }, 5000);
+    } catch(e){}
+  }
+  function writeFast(key, mutate, send, reconcile, reload){
+    mutate();
+    __pend[key] = (__pend[key]||0) + 1;
+    var failed = null;
+    send(function(res){ __pend[key] = Math.max(0,(__pend[key]||0)-1); if (__pend[key] > 0) return;
+        if (failed) { showToast('Bir işlem kaydedilemedi — güncel veri yeniden yüklendi.'); if (reload) reload(); return; }
+        if (reconcile && res != null) reconcile(res); else if (reload) reload(); },
+      function(err){ failed = err || {}; __pend[key] = Math.max(0,(__pend[key]||0)-1); if (__pend[key] > 0) return;
+        showToast((err && err.message) ? err.message : 'Kaydedilemedi — güncel veri yeniden yüklendi.'); if (reload) reload(); });
+  }
+
   // Hangi görünüm o an ekranda — arka plan yenileme döngüleri (20sn) sadece
   // o an görünen ekran için ağ isteği atar, görünmeyenler atlanır. Böylece
   // kullanıcı tek bir ekrandayken arka planda aynı anda 3 ayrı Apps Script
@@ -1387,19 +1418,13 @@ td.num{color:var(--fg-muted)}
       var btn=overlay.querySelector("#f-save");
       btn.disabled=true;
       var payload={customer:customer,product:product,quantity:quantity,orderDate:orderDate,plannedDate:plannedDate||"",notes:notes||""};
-      function onSuccess(orders){
-        state.orders=orders; state.loaded=true;
-        closeModal(); render();
-      }
-      function onFailure(err){
-        errEl.textContent="Kaydedilemedi, tekrar deneyin.";
-        errEl.hidden=false;
-        btn.disabled=false;
-      }
+      closeModal();
       if(isEdit){
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateOrder(existing.id,payload);
+        ordersWrite(function(l){ return patchById(l, existing.id, payload); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateOrder(existing.id,payload); });
       } else {
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).addOrder(payload);
+        ordersWrite(function(l){ return l.concat([tmpOrder(payload)]); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addOrder(payload); });
       }
     };
   }
@@ -1486,7 +1511,10 @@ td.num{color:var(--fg-muted)}
           reader.readAsDataURL(uploadFile);
         });
       } else {
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).deliverOrder(o.id, payload, null);
+        closeModal();
+        var __dp=Object.assign({status:"teslim"}, payload);
+        ordersWrite(function(l){ return patchById(l, o.id, __dp); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deliverOrder(o.id, payload, null); });
       }
     };
   }
@@ -1519,15 +1547,10 @@ td.num{color:var(--fg-muted)}
       }
       var btn=overlay.querySelector("#mz-save");
       btn.disabled=true;
-      google.script.run.withSuccessHandler(function(orders){
-        state.orders=orders;
-        var updated=orders.find(function(x){return x.id===o.id;})||Object.assign({},o,{lateReason:reason});
-        if(onDone) onDone(updated);
-      }).withFailureHandler(function(){
-        errEl.textContent="Kaydedilemedi, tekrar deneyin.";
-        errEl.hidden=false;
-        btn.disabled=false;
-      }).updateOrder(o.id,{lateReason:reason});
+      var updated=Object.assign({},o,{lateReason:reason});
+      ordersWrite(function(l){ return patchById(l, o.id, {lateReason:reason}); },
+        function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateOrder(o.id,{lateReason:reason}); });
+      if(onDone) onDone(updated);
     };
   }
 
@@ -1582,17 +1605,15 @@ td.num{color:var(--fg-muted)}
     if(deliverBtn) deliverBtn.onclick=function(){ closeModal(); openDeliverModal(o); };
     var nextBtn=overlay.querySelector("#btn-status-next");
     if(nextBtn) nextBtn.onclick=function(){
-      nextBtn.disabled=true;
-      google.script.run.withSuccessHandler(function(orders){
-        state.orders=orders; closeModal(); render();
-      }).withFailureHandler(function(){ nextBtn.disabled=false; }).updateOrder(o.id,{status:nextStatus});
+      nextBtn.disabled=true; closeModal();
+      ordersWrite(function(l){ return patchById(l, o.id, {status:nextStatus}); },
+        function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateOrder(o.id,{status:nextStatus}); });
     };
     var prevBtn=overlay.querySelector("#btn-status-prev");
     if(prevBtn) prevBtn.onclick=function(){
-      prevBtn.disabled=true;
-      google.script.run.withSuccessHandler(function(orders){
-        state.orders=orders; closeModal(); render();
-      }).withFailureHandler(function(){ prevBtn.disabled=false; }).updateOrder(o.id,{status:prevStatus});
+      prevBtn.disabled=true; closeModal();
+      ordersWrite(function(l){ return patchById(l, o.id, {status:prevStatus}); },
+        function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateOrder(o.id,{status:prevStatus}); });
     };
   }
 
@@ -1776,32 +1797,29 @@ td.num{color:var(--fg-muted)}
     if(btn){
       var id=btn.getAttribute("data-id");
       var action=btn.getAttribute("data-action");
-      var order=state.orders.find(function(o){return o.id===id;});
+      var order=findReal(state.orders,id);
       if(action==="edit" && order) ensureMazeret(order, openOrderModal);
       else if(action==="deliver" && order) openDeliverModal(order);
       else if(action==="set-status" && order){
         var newStatus=btn.getAttribute("data-status");
         ensureMazeret(order, function(){
           btn.disabled=true;
-          google.script.run.withSuccessHandler(function(orders){
-            state.orders=orders; render();
-          }).withFailureHandler(function(){ btn.disabled=false; }).updateOrder(id, {status:newStatus});
+          ordersWrite(function(l){ return patchById(l, id, {status:newStatus}); },
+            function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateOrder(id, {status:newStatus}); });
         });
       }
       else if(action==="delete" && order && order.status!=="teslim"){ state.pendingDeleteId=id; renderTable(); }
       else if(action==="delete-confirm" && order && order.status!=="teslim"){
-        google.script.run.withSuccessHandler(function(orders){
-          state.orders=orders; state.pendingDeleteId=null; render();
-        }).withFailureHandler(function(){
-          state.pendingDeleteId=null; renderTable();
-        }).deleteOrder(id);
+        state.pendingDeleteId=null;
+        ordersWrite(function(l){ return l.filter(function(x){ return x.id!==id; }); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteOrder(id); });
       }
       return;
     }
     if(e.target.closest("a")) return;
     var tr=e.target.closest("tr[data-order-id]");
     if(tr){
-      var o=state.orders.find(function(x){return x.id===tr.getAttribute("data-order-id");});
+      var o=findReal(state.orders,tr.getAttribute("data-order-id"));
       if(o) ensureMazeret(o, openDetailModal);
     }
   });
@@ -1818,12 +1836,21 @@ td.num{color:var(--fg-muted)}
 
   function loadOrders(){
     google.script.run.withSuccessHandler(function(orders){
+      if(isPend('orders')) return;
       state.orders=orders; state.loaded=true; markFresh('orders'); Snap.set('orders', orders); render();
     }).withFailureHandler(function(){
       state.loaded=true; render();
     }).getOrders();
   }
-  bootRegister('orders', function(orders){ state.orders=orders; state.loaded=true; Snap.set('orders', orders); render(); }, loadOrders);
+  bootRegister('orders', function(orders){ if(isPend('orders')) return; state.orders=orders; state.loaded=true; Snap.set('orders', orders); render(); }, loadOrders);
+  function ordersWrite(mut, send){
+    writeFast('orders', function(){ state.orders = mut(state.orders.slice()); render(); }, send,
+      function(list){ state.orders=list; state.loaded=true; Snap.set('orders', list); render(); }, loadOrders);
+  }
+  function tmpOrder(p){
+    return { id:tmpId(), orderNo:'…', customer:p.customer, product:p.product, quantity:p.quantity, orderDate:p.orderDate, plannedDate:p.plannedDate||'',
+      deliveredDate:'', deliveredBy:'', receivedBy:'', status:'siparis', lateReason:'', notes:p.notes||'', createdAt:new Date().toISOString() };
+  }
   setInterval(function(){ if (__activeView==="orders") loadOrders(); }, 20000);
   // Üretim sayfası neden "anında" açılıyor? Çünkü verisi uygulama açılır
   // açılmaz, kullanıcı o sayfaya hiç girmeden, arka planda önceden
@@ -1844,8 +1871,8 @@ td.num{color:var(--fg-muted)}
     window.__adminUsersCache = Snap.get('adminUsers') || window.__adminUsersCache;
     window.__stockItemsCacheByList = Snap.get('stockItems') || {};
   } catch (e) {}
-  bootRegister('stockLists', function(l){ renderStockLists(l); }, function(){ loadStockLists(); });
-  bootRegister('agenda', function(l){ renderAgendaList(l); }, function(){ loadAgendaItems(); });
+  bootRegister('stockLists', function(l){ if(isPend('stock')) return; renderStockLists(l); }, function(){ loadStockLists(); });
+  bootRegister('agenda', function(l){ if(isPend('agenda')) return; renderAgendaList(l); }, function(){ loadAgendaItems(); });
   bootRegister('adminUsers', function(l){ renderAdminUsers(l); }, function(){ loadAdminUsers(); });
   // Grafik kütüphanesi küçük: boşta iken önceden yükle ki istatistik anında açılsın.
   setTimeout(function(){ if (getToken()) loadLib(CHART_URL, 'Chart', function(){}); }, 6000);
@@ -2222,6 +2249,7 @@ td.num{color:var(--fg-muted)}
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
         var id = btn.getAttribute('data-id');
+        if (String(id).indexOf('tmp_') === 0) return;
         if (act === 'edit') {
           var u = (window.__adminUsersCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
           if (u) openEditUserModal(u);
@@ -2343,12 +2371,15 @@ td.num{color:var(--fg-muted)}
       return dt.toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric' });
     } catch(e){ return String(d); }
   }
+  function agendaWrite(mut, send){
+    writeFast('agenda', function(){ renderAgendaList(mut((window.__agendaCache||[]).slice())); }, send, null, loadAgendaItems);
+  }
   function loadAgendaItems(){
     var list = document.getElementById('agenda-list');
     if (window.__agendaCache) renderAgendaList(window.__agendaCache);
     else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(function(u){ markFresh('agenda'); renderAgendaList(u); })
+      .withSuccessHandler(function(u){ if(isPend('agenda')) return; markFresh('agenda'); renderAgendaList(u); })
       .withFailureHandler(function(err){
         if (!window.__agendaCache) {
           list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Ajanda yüklenemedi.')+'</div>';
@@ -2378,12 +2409,14 @@ td.num{color:var(--fg-muted)}
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
         var id = btn.getAttribute('data-id');
+        if (String(id).indexOf('tmp_') === 0) return;
         if (act === 'agenda-edit') {
           var it = (window.__agendaCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
           if (it) openAgendaModal(it);
         } else if (act === 'agenda-delete') {
           if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
-          window.google.script.run.withSuccessHandler(loadAgendaItems).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteAgendaItem(getToken(), id);
+          agendaWrite(function(l){ return l.filter(function(x){ return String(x.id)!==String(id); }); },
+            function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteAgendaItem(getToken(), id); });
         }
       });
     });
@@ -2425,6 +2458,15 @@ td.num{color:var(--fg-muted)}
       };
       if (!payload.title) { errBox.textContent = 'Başlık zorunludur.'; errBox.style.display='block'; return; }
       if (!payload.date) { errBox.textContent = 'Tarih zorunludur.'; errBox.style.display='block'; return; }
+      closeModal();
+      if (isEdit) {
+        agendaWrite(function(l){ return patchById(l, existing.id, payload); },
+          function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateAgendaItem(getToken(), existing.id, payload); });
+      } else {
+        agendaWrite(function(l){ return [Object.assign({id:tmpId(), createdAt:new Date().toISOString()}, payload)].concat(l); },
+          function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addAgendaItem(getToken(), payload); });
+      }
+      return;
       var btn = this;
       btn.disabled = true;
       btn.textContent = 'Kaydediliyor…';
@@ -2455,6 +2497,18 @@ td.num{color:var(--fg-muted)}
     else if (window.__stockListsCache) renderStockLists(window.__stockListsCache);
   }
 
+  function stockListsWrite(mut, send){
+    writeFast('stock', function(){ renderStockLists(mut((window.__stockListsCache||[]).slice())); }, send, null, loadStockLists);
+  }
+  function stockItemsWrite(mut, send){
+    var lid = stkState.currentListId;
+    writeFast('stock', function(){
+      window.__stockItemsCacheByList = window.__stockItemsCacheByList || {};
+      var items = mut((window.__stockItemsCache||[]).slice());
+      window.__stockItemsCacheByList[lid] = items;
+      renderStockItems(items);
+    }, send, null, function(){ loadStockItems(lid); });
+  }
   function loadStockLists(){
     var list = document.getElementById('stock-lists');
     // Daha önce yüklenmiş bir önbellek varsa (örn. uygulama açılırken arka
@@ -2464,7 +2518,7 @@ td.num{color:var(--fg-muted)}
     if (window.__stockListsCache) renderStockLists(window.__stockListsCache);
     else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(function(u){ markFresh('stockLists'); renderStockLists(u); })
+      .withSuccessHandler(function(u){ if(isPend('stock')) return; markFresh('stockLists'); renderStockLists(u); })
       .withFailureHandler(function(err){
         if (!window.__stockListsCache) {
           list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Listeler yüklenemedi.')+'</div>';
@@ -2505,12 +2559,14 @@ td.num{color:var(--fg-muted)}
         e.stopPropagation();
         var act = btn.getAttribute('data-act');
         var id = btn.getAttribute('data-id');
+        if (String(id).indexOf('tmp_') === 0) return;
         var l = (window.__stockListsCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
         if (act === 'open' && l) openStockDetail(l);
         else if (act === 'edit' && l) openStockListModal(l);
         else if (act === 'delete') {
           if (!confirm('"'+(l?l.name:'')+'" listesini ve içindeki TÜM kalemleri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
-          window.google.script.run.withSuccessHandler(loadStockLists).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteStockList(getToken(), id);
+          stockListsWrite(function(x){ return x.filter(function(l){ return String(l.id)!==String(id); }); },
+            function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteStockList(getToken(), id); });
         }
       });
     });
@@ -2535,6 +2591,15 @@ td.num{color:var(--fg-muted)}
       var errBox = document.getElementById('sl-err');
       var payload = { name: document.getElementById('sl-name').value.trim(), description: document.getElementById('sl-desc').value.trim() };
       if (!payload.name) { errBox.textContent = 'Liste adı zorunludur.'; errBox.style.display='block'; return; }
+      closeModal();
+      if (isEdit) {
+        stockListsWrite(function(l){ return patchById(l, existing.id, payload); },
+          function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateStockList(getToken(), existing.id, payload); });
+      } else {
+        stockListsWrite(function(l){ return l.concat([Object.assign({id:tmpId(), itemCount:0, criticalCount:0, createdAt:new Date().toISOString()}, payload)]); },
+          function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addStockList(getToken(), payload); });
+      }
+      return;
       var btn = this;
       btn.disabled = true; btn.textContent = 'Kaydediliyor…';
       var runner = window.google.script.run
@@ -2570,6 +2635,7 @@ td.num{color:var(--fg-muted)}
     else el.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
       .withSuccessHandler(function(items){
+        if(isPend('stock')) return;
         window.__stockItemsCacheByList[listId] = items; Snap.set('stockItems', window.__stockItemsCacheByList);
         // Kullanıcı bu arada başka bir listeye geçmiş olabilir; sadece hâlâ
         // açık olan liste için gelen sonucu ekrana basıyoruz.
@@ -2614,11 +2680,13 @@ td.num{color:var(--fg-muted)}
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
         var id = btn.getAttribute('data-id');
+        if (String(id).indexOf('tmp_') === 0) return;
         var it = (window.__stockItemsCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
         if (act === 'edit' && it) openStockItemModal(it);
         else if (act === 'delete') {
           if (!confirm('Bu stok kalemini silmek istediğinize emin misiniz?')) return;
-          window.google.script.run.withSuccessHandler(function(){ loadStockItems(stkState.currentListId); }).withFailureHandler(function(err){ alert((err&&err.message)||'İşlem başarısız.'); }).deleteStockItem(getToken(), id);
+          stockItemsWrite(function(x){ return x.filter(function(i){ return String(i.id)!==String(id); }); },
+            function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteStockItem(getToken(), id); });
         }
       });
     });
@@ -2698,6 +2766,20 @@ td.num{color:var(--fg-muted)}
       };
       if (pendingPhoto) payload.photo = pendingPhoto;
       if (removePhoto) payload.removePhoto = true;
+      if (!payload.photo && !payload.removePhoto) {
+        closeModal();
+        var __lid = stkState.currentListId;
+        var __local = Object.assign({}, payload);
+        delete __local.photo; delete __local.removePhoto;
+        if (isEdit) {
+          stockItemsWrite(function(l){ return patchById(l, existing.id, __local); },
+            function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateStockItem(getToken(), existing.id, payload); });
+        } else {
+          stockItemsWrite(function(l){ return l.concat([Object.assign({id:tmpId(), listId:__lid, stokNo:'…', fotoUrl:''}, __local)]); },
+            function(ok,fail){ window.google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addStockItem(getToken(), __lid, payload); });
+        }
+        return;
+      }
       var btn = this;
       btn.disabled = true; btn.textContent = 'Kaydediliyor…';
       var runner = window.google.script.run
@@ -3156,6 +3238,17 @@ td.num{color:var(--fg-muted)}
         btn.disabled=false;
         btn.textContent=origLabel;
       }
+      if(!chosenShipFile && !chosenReturnFile){
+        closeModal();
+        if(isEdit){
+          servicesWrite(function(l){ return patchById(l, existing.id, payload); },
+            function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateServiceRecord(existing.id,payload,null,null); });
+        } else {
+          servicesWrite(function(l){ return l.concat([Object.assign({id:tmpId(), caseNo:"…", createdAt:new Date().toISOString()}, payload)]); },
+            function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addServiceRecord(payload,null,null); });
+        }
+        return;
+      }
       var shipPromise = chosenShipFile ? fileToDataPayload(chosenShipFile) : Promise.resolve(null);
       var returnPromise = chosenReturnFile ? fileToDataPayload(chosenReturnFile) : Promise.resolve(null);
       Promise.all([shipPromise, returnPromise]).then(function(results){
@@ -3265,21 +3358,19 @@ td.num{color:var(--fg-muted)}
     if(btn){
       var id=btn.getAttribute("data-id");
       var action=btn.getAttribute("data-action");
-      var record=sState.records.find(function(o){return o.id===id;});
+      var record=findReal(sState.records,id);
       if(action==="s-edit" && record) openServiceModal(record);
       else if(action==="s-delete"){ sState.pendingDeleteId=id; sRenderTable(); }
       else if(action==="s-delete-confirm" && record){
-        google.script.run.withSuccessHandler(function(records){
-          sState.records=records; sState.pendingDeleteId=null; sRender();
-        }).withFailureHandler(function(){
-          sState.pendingDeleteId=null; sRenderTable();
-        }).deleteServiceRecord(id);
+        sState.pendingDeleteId=null;
+        servicesWrite(function(l){ return l.filter(function(x){ return x.id!==id; }); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteServiceRecord(id); });
       }
       return;
     }
     var tr=e.target.closest("tr[data-service-id]");
     if(tr){
-      var o=sState.records.find(function(x){return x.id===tr.getAttribute("data-service-id");});
+      var o=findReal(sState.records,tr.getAttribute("data-service-id"));
       if(o) openServiceDetailModal(o);
     }
   });
@@ -3294,12 +3385,16 @@ td.num{color:var(--fg-muted)}
 
   function loadServiceRecords(){
     google.script.run.withSuccessHandler(function(records){
-      sState.records=records; sState.loaded=true; markFresh('service'); Snap.set('service', records); sRender();
+      if(isPend('service')) return; sState.records=records; sState.loaded=true; markFresh('service'); Snap.set('service', records); sRender();
     }).withFailureHandler(function(){
       sState.loaded=true; sRender();
     }).getServiceRecords();
   }
-  bootRegister('service', function(records){ sState.records=records; sState.loaded=true; Snap.set('service', records); sRender(); }, loadServiceRecords);
+  function servicesWrite(mut, send){
+    writeFast('service', function(){ sState.records = mut(sState.records.slice()); sRender(); }, send,
+      function(list){ sState.records=list; sState.loaded=true; Snap.set('service', list); sRender(); }, loadServiceRecords);
+  }
+  bootRegister('service', function(records){ if(isPend('service')) return; sState.records=records; sState.loaded=true; Snap.set('service', records); sRender(); }, loadServiceRecords);
   setInterval(function(){ if (__activeView==="service") loadServiceRecords(); }, 20000);
 
   /* ===================== Personel Takibi ===================== */
@@ -3599,12 +3694,13 @@ td.num{color:var(--fg-muted)}
       var btn=overlay.querySelector("#p-save");
       btn.disabled=true;
       var payload={fullName:fullName,role:role,phone:phone,startDate:startDate,endDate:endDate||"",notes:notes,personnelType:personnelType,schoolDay:schoolDay};
-      function onSuccess(list){ pState.personnel=list; pState.loaded=true; closeModal(); pRender(); }
-      function onFailure(){ errEl.textContent="Kaydedilemedi, tekrar deneyin."; errEl.hidden=false; btn.disabled=false; }
+      closeModal();
       if(isEdit){
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updatePersonnel(existing.id,payload);
+        pWrite('personnel', function(l){ return patchById(l, existing.id, payload); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updatePersonnel(existing.id,payload); });
       } else {
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).addPersonnel(payload);
+        pWrite('personnel', function(l){ return l.concat([Object.assign({id:tmpId()}, payload)]); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addPersonnel(payload); });
       }
     };
   }
@@ -3640,10 +3736,9 @@ td.num{color:var(--fg-muted)}
     endEl.onchange=updateHint;
     var delBtn=overlay.querySelector('[data-action="l-delete"]');
     if(delBtn) delBtn.onclick=function(){
-      delBtn.disabled=true;
-      google.script.run.withSuccessHandler(function(list){
-        pState.leaves=list; closeModal(); pRender();
-      }).withFailureHandler(function(){ delBtn.disabled=false; }).deleteLeave(existing.id);
+      delBtn.disabled=true; closeModal();
+      pWrite('leaves', function(l){ return l.filter(function(x){ return x.id!==existing.id; }); },
+        function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deleteLeave(existing.id); });
     };
     overlay.querySelector("#l-save").onclick=function(){
       var leaveType=overlay.querySelector("#l-type").value;
@@ -3656,12 +3751,13 @@ td.num{color:var(--fg-muted)}
       var btn=overlay.querySelector("#l-save");
       btn.disabled=true;
       var payload={personnelId:personnel.id,leaveType:leaveType,startDate:startDate,endDate:endDate,days:days,reason:reason};
-      function onSuccess(list){ pState.leaves=list; closeModal(); pRender(); }
-      function onFailure(){ errEl.textContent="Kaydedilemedi, tekrar deneyin."; errEl.hidden=false; btn.disabled=false; }
+      closeModal();
       if(isEdit){
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateLeave(existing.id,payload);
+        pWrite('leaves', function(l){ return patchById(l, existing.id, payload); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).updateLeave(existing.id,payload); });
       } else {
-        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).addLeave(payload);
+        pWrite('leaves', function(l){ return l.concat([Object.assign({id:tmpId()}, payload)]); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).addLeave(payload); });
       }
     };
   }
@@ -3720,22 +3816,20 @@ td.num{color:var(--fg-muted)}
     if(btn){
       var id=btn.getAttribute("data-id");
       var action=btn.getAttribute("data-action");
-      var person=pState.personnel.find(function(o){ return o.id===id; });
+      var person=findReal(pState.personnel,id);
       if(action==="p-edit" && person) openPersonnelModal(person);
       else if(action==="p-leave" && person) openLeaveModal(person, null);
       else if(action==="p-delete"){ pState.pendingDeleteId=id; pRenderTable(); }
       else if(action==="p-delete-confirm" && person){
-        google.script.run.withSuccessHandler(function(list){
-          pState.personnel=list; pState.pendingDeleteId=null; pRender();
-        }).withFailureHandler(function(){
-          pState.pendingDeleteId=null; pRenderTable();
-        }).deletePersonnel(id);
+        pState.pendingDeleteId=null;
+        pWrite('personnel', function(l){ return l.filter(function(x){ return x.id!==id; }); },
+          function(ok,fail){ google.script.run.withSuccessHandler(ok).withFailureHandler(fail).deletePersonnel(id); });
       }
       return;
     }
     var tr=e.target.closest("tr[data-personnel-id]");
     if(tr){
-      var o=pState.personnel.find(function(x){ return x.id===tr.getAttribute("data-personnel-id"); });
+      var o=findReal(pState.personnel,tr.getAttribute("data-personnel-id"));
       if(o) openPersonnelDetailModal(o);
     }
   });
@@ -3747,12 +3841,16 @@ td.num{color:var(--fg-muted)}
 
   function loadPersonnelData(){
     google.script.run.withSuccessHandler(function(data){
-      pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; markFresh('personnel'); Snap.set('personnel', data); pRender();
+      if(isPend('personnel')) return; pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; markFresh('personnel'); Snap.set('personnel', data); pRender();
     }).withFailureHandler(function(){
       pState.loaded=true; pRender();
     }).getPersonnelData();
   }
-  bootRegister('personnel', function(data){ pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
+  function pWrite(field, mut, send){
+    writeFast('personnel', function(){ pState[field] = mut(pState[field].slice()); pRender(); }, send,
+      function(list){ pState[field]=list; pState.loaded=true; Snap.set('personnel', {personnel:pState.personnel, leaves:pState.leaves}); pRender(); }, loadPersonnelData);
+  }
+  bootRegister('personnel', function(data){ if(isPend('personnel')) return; pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
   setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
 
   // Sayfa kapanırken/arka plana giderken son durumu cihaza kaydet.
