@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791188215";
+  var MY = "1791188488";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -1872,7 +1872,7 @@ td.num{color:var(--fg-muted)}
     return { id:tmpId(), orderNo:'…', customer:p.customer, product:p.product, quantity:p.quantity, orderDate:p.orderDate, plannedDate:p.plannedDate||'',
       deliveredDate:'', deliveredBy:'', receivedBy:'', status:'siparis', lateReason:'', notes:p.notes||'', createdAt:new Date().toISOString() };
   }
-  setInterval(function(){ if (__activeView==="orders") loadOrders(); }, 20000);
+  setInterval(function(){ if (false && __activeView==="orders") loadOrders(); }, 20000);
   // Üretim sayfası neden "anında" açılıyor? Çünkü verisi uygulama açılır
   // açılmaz, kullanıcı o sayfaya hiç girmeden, arka planda önceden
   // çekiliyor — sayfaya girdiğinizde zaten hazır veri ekrana basılıyor ve
@@ -3416,7 +3416,7 @@ td.num{color:var(--fg-muted)}
       function(list){ sState.records=list; sState.loaded=true; Snap.set('service', list); sRender(); }, loadServiceRecords);
   }
   bootRegister('service', function(records){ if(isPend('service')) return; sState.records=records; sState.loaded=true; Snap.set('service', records); sRender(); }, loadServiceRecords);
-  setInterval(function(){ if (__activeView==="service") loadServiceRecords(); }, 20000);
+  setInterval(function(){ if (false && __activeView==="service") loadServiceRecords(); }, 20000);
 
   /* ===================== Personel Takibi ===================== */
 
@@ -3874,7 +3874,7 @@ td.num{color:var(--fg-muted)}
   // Cihazdaki kopya varsa tabloyu HEMEN çiz (sunucu cevabını bekleme).
   if (pState.loaded) { try { pRender(); } catch(e){} }
   bootRegister('personnel', function(data){ if(isPend('personnel')) return; pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
-  setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
+  setInterval(function(){ if (false && __activeView==="personnel") loadPersonnelData(); }, 20000);
 
   // Başka cihazdan yapılan değişiklikler (telefonda stok değiştirdiniz → bilgisayarda
   // görünsün): açık olan ekran düzenli aralıkla sessizce tazelenir; sekmeye/uygulamaya
@@ -3895,7 +3895,7 @@ td.num{color:var(--fg-muted)}
       if (window.vegaRefreshNotifications) window.vegaRefreshNotifications();
     } catch(e){}
   }
-  setInterval(function(){ if (__activeView==='stock' || __activeView==='agenda' || __activeView==='admin') refreshActiveView(); }, 15000);
+  setInterval(function(){ if (__activeView!=='home' && __activeView!=='login') refreshActiveView(); }, 6000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshActiveView(); });
   window.addEventListener('focus', refreshActiveView);
 
