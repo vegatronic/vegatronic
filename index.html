@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791195888";
+  var MY = "1791196494";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -1925,6 +1925,8 @@ td.num{color:var(--fg-muted)}
     });
     var prevView = __activeView;
     __activeView = view;
+    // Sayfa yenilenince (veya yeni sürüme geçilince) aynı sayfada kalmak için hatırla.
+    try { if (view !== 'login') sessionStorage.setItem('vega_last_view', view); } catch(e){}
     // Cihazdaki/önceki kopya varsa ekran HEMEN dolsun; veri tazeyse sunucuya gitme.
     if (view==="admin") {
       if (window.__adminUsersCache) renderAdminUsers(window.__adminUsersCache);
@@ -1994,7 +1996,18 @@ td.num{color:var(--fg-muted)}
   }
   function boot(){
     var token = getToken(), user = getStoredUser();
-    if (token && user) { applyLoggedInUi(user); showView('home'); }
+    if (token && user) {
+      applyLoggedInUi(user);
+      var last = null, lastList = null;
+      try { last = sessionStorage.getItem('vega_last_view'); lastList = sessionStorage.getItem('vega_last_stock_list'); } catch(e){}
+      var ok = ['home','orders','service','personnel','agenda','stock','admin'];
+      if (last === 'admin' && !user.isAdmin) last = 'home';
+      showView(ok.indexOf(last) !== -1 ? last : 'home');
+      if (last === 'stock' && lastList) {
+        var cached = (window.__stockListsCache || []).filter(function(l){ return String(l.id) === String(lastList); })[0];
+        if (cached) openStockDetail(cached);
+      }
+    }
     else { showView('login'); }
   }
 
@@ -2553,6 +2566,7 @@ td.num{color:var(--fg-muted)}
   var stkState = { currentListId: null, currentListName: '' };
 
   function showStockListsView(){
+    try { sessionStorage.removeItem('vega_last_stock_list'); } catch(e){}
     stkState.currentListId = null;
     document.getElementById('stock-lists-view').hidden = false;
     document.getElementById('stock-items-view').hidden = true;
@@ -2682,6 +2696,7 @@ td.num{color:var(--fg-muted)}
   document.getElementById('btn-back-stock-lists').onclick = showStockListsView;
 
   function openStockDetail(l){
+    try { sessionStorage.setItem('vega_last_stock_list', String(l.id)); } catch(e){}
     stkState.currentListId = l.id;
     stkState.currentListName = l.name;
     document.getElementById('stock-lists-view').hidden = true;
