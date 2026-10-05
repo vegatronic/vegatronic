@@ -10,7 +10,7 @@
 // dosya kaydedilirse biri diğerini devre dışı bırakır. Bu yüzden ikisi tek
 // dosyada birleştirildi.
 
-var CACHE_NAME = "vega-takip-v4";
+var CACHE_NAME = "vega-takip-v5";
 var ASSETS = [
   "./",
   "./index.html",
@@ -45,6 +45,27 @@ self.addEventListener("fetch", function (event) {
   var req = event.request;
   if (req.method !== "GET") return; // veri yazma çağrılarına dokunma
   var url = new URL(req.url);
+
+  // Sabit kütüphane/yazı tipi dosyaları (sürüm numarası adreste olduğu için
+  // içerikleri hiç değişmez): önce önbellek, yoksa ağdan alıp sakla. Böylece
+  // ilk açılıştan sonra hiç internetten beklenmezler.
+  var CDN_HOSTS = ["cdnjs.cloudflare.com", "www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
+  if (CDN_HOSTS.indexOf(url.hostname) !== -1) {
+    event.respondWith(
+      caches.match(req).then(function (cached) {
+        if (cached) return cached;
+        return fetch(req).then(function (res) {
+          if (res && (res.ok || res.type === "opaque")) {
+            var copy = res.clone();
+            caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
   if (url.origin !== self.location.origin) return; // Apps Script çağrılarına dokunma
 
   // Sayfanın kendisi (HTML) her zaman önce ağdan denenir, böylece yeni bir

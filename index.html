@@ -5,8 +5,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dijital Takip Sistemi</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0C1526">
@@ -17,8 +15,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Vega Takip">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#F3F4F7;
@@ -859,6 +858,68 @@ td.num{color:var(--fg-muted)}
 (function(){
   "use strict";
 
+  /* ===================== HIZ ALTYAPISI =====================
+     1) Snap: son görülen veri cihazda saklanır; uygulama açılır açılmaz
+        (sunucu cevabını beklemeden) ekrana basılır, arkadan tazelenir.
+     2) loadLib: Excel / grafik kütüphaneleri açılışı bloklamaz; sadece
+        gerektiğinde (veya boşta iken) yüklenir.
+     3) bootRegister/bootRun: açılışta ~8 ayrı sunucu isteği yerine TEK istek
+        (getBootData). Sunucu henüz güncellenmediyse eski tek tek yönteme düşer. */
+  var Snap = {
+    k: function(n){ var u=getStoredUser(); return (u && u.id && getToken()) ? 'vega_snap_'+u.id+'_'+n : null; },
+    get: function(n){ try { var k=this.k(n); if(!k) return null; var r=localStorage.getItem(k); return r?JSON.parse(r):null; } catch(e){ return null; } },
+    set: function(n,v){ try { var k=this.k(n); if(k && v!=null) localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+    clearAll: function(){ try { Object.keys(localStorage).forEach(function(k){ if(k.indexOf('vega_snap_')===0) localStorage.removeItem(k); }); } catch(e){} }
+  };
+  var XLSX_URL = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  var CHART_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js";
+  var __libs = {};
+  function loadLib(url, globalName, cb){
+    if (window[globalName]) { cb(true); return; }
+    var entry = __libs[url];
+    if (!entry) {
+      entry = __libs[url] = { cbs: [] };
+      var sc = document.createElement('script');
+      sc.src = url; sc.async = true;
+      sc.onload = function(){ var c=entry.cbs; entry.cbs=[]; c.forEach(function(f){ f(!!window[globalName]); }); };
+      sc.onerror = function(){ delete __libs[url]; var c=entry.cbs; entry.cbs=[]; c.forEach(function(f){ f(false); }); };
+      document.head.appendChild(sc);
+    }
+    entry.cbs.push(cb);
+  }
+  var __fresh = {};
+  function markFresh(k){ __fresh[k] = Date.now(); }
+  function isFresh(k){ return __fresh[k] && (Date.now() - __fresh[k]) < 15000; }
+  var __boot = { started:false, waiters:{} };
+  function bootRegister(key, apply, fallback){
+    __boot.waiters[key] = { apply: apply, fallback: fallback };
+    if (!getToken()) return;
+    if (!__boot.started) { __boot.started = true; setTimeout(bootRun, 0); }
+  }
+  function bootRun(){
+    __boot.started = true;
+    var u = getStoredUser();
+    var keys = Object.keys(__boot.waiters).filter(function(k){ return k !== 'adminUsers' || (u && u.isAdmin); });
+    keys.forEach(markFresh); // istek yolda: ekrana girince aynı veriyi ikinci kez isteme
+    function runFallbacks(list){
+      list.forEach(function(k, i){ setTimeout(function(){ try { __boot.waiters[k].fallback(); } catch(e){} }, i*350); });
+    }
+    window.google.script.run
+      .withSuccessHandler(function(d){
+        d = d || {};
+        var missing = [];
+        keys.forEach(function(k){
+          if (d[k] === undefined || d[k] === null) { missing.push(k); return; }
+          markFresh(k);
+          try { __boot.waiters[k].apply(d[k]); } catch(e){}
+        });
+        runFallbacks(missing);
+      })
+      .withFailureHandler(function(){ runFallbacks(keys); })
+      .getBootData(getToken());
+  }
+  window.__vegaBootLoad = function(){ bootRun(); };
+
   // Hangi görünüm o an ekranda — arka plan yenileme döngüleri (20sn) sadece
   // o an görünen ekran için ağ isteği atar, görünmeyenler atlanır. Böylece
   // kullanıcı tek bir ekrandayken arka planda aynı anda 3 ayrı Apps Script
@@ -957,6 +1018,7 @@ td.num{color:var(--fg-muted)}
     search: "",
     pendingDeleteId: null
   };
+  (function(){ var sn=Snap.get('orders'); if (sn && sn.length!==undefined) { state.orders=sn; state.loaded=true; } })();
 
   function monthKeyNow(){
     var d=new Date();
@@ -1594,10 +1656,15 @@ td.num{color:var(--fg-muted)}
     overlay.querySelector('[data-action="close"]').onclick=closeModal;
     if(statsBarChart){ statsBarChart.destroy(); statsBarChart=null; }
     if(statsPieChart){ statsPieChart.destroy(); statsPieChart=null; }
-    if(typeof Chart==="undefined"){
-      overlay.querySelector('[style*="flex-wrap"]').outerHTML='<div class="hint">Grafik kütüphanesi yüklenemedi (internet bağlantısını kontrol edip sayfayı yenileyin). Tablolar aşağıda görünmeye devam ediyor.</div>';
-      return;
-    }
+    loadLib(CHART_URL, "Chart", function(ok){
+      if(!ok || !overlay.isConnected){
+        var holder=overlay.querySelector('[style*="flex-wrap"]');
+        if(holder) holder.outerHTML='<div class="hint">Grafik kütüphanesi yüklenemedi (internet bağlantısını kontrol edip tekrar deneyin). Tablolar aşağıda görünmeye devam ediyor.</div>';
+        return;
+      }
+      drawStatsCharts();
+    });
+    function drawStatsCharts(){
     var barCtx=overlay.querySelector("#stats-chart-bar").getContext("2d");
     statsBarChart=new Chart(barCtx,{
       type:"bar",
@@ -1639,6 +1706,7 @@ td.num{color:var(--fg-muted)}
         }
       }
     });
+    }
   }
 
   // ---------- events ----------
@@ -1651,6 +1719,11 @@ td.num{color:var(--fg-muted)}
   document.getElementById("btn-report").onclick=function(){ exportExcelReport(); };
 
   function exportExcelReport(){
+    var st=document.getElementById("report-status");
+    st.hidden=false; st.style.color=""; st.textContent="Rapor hazırlanıyor…";
+    loadLib(XLSX_URL, "XLSX", function(){ exportExcelReportImpl(); });
+  }
+  function exportExcelReportImpl(){
     var statusEl=document.getElementById("report-status");
     statusEl.hidden=false;
     statusEl.style.color="";
@@ -1745,12 +1818,12 @@ td.num{color:var(--fg-muted)}
 
   function loadOrders(){
     google.script.run.withSuccessHandler(function(orders){
-      state.orders=orders; state.loaded=true; render();
+      state.orders=orders; state.loaded=true; markFresh('orders'); Snap.set('orders', orders); render();
     }).withFailureHandler(function(){
       state.loaded=true; render();
     }).getOrders();
   }
-  loadOrders();
+  bootRegister('orders', function(orders){ state.orders=orders; state.loaded=true; Snap.set('orders', orders); render(); }, loadOrders);
   setInterval(function(){ if (__activeView==="orders") loadOrders(); }, 20000);
   // Üretim sayfası neden "anında" açılıyor? Çünkü verisi uygulama açılır
   // açılmaz, kullanıcı o sayfaya hiç girmeden, arka planda önceden
@@ -1763,16 +1836,19 @@ td.num{color:var(--fg-muted)}
   // tarafında kuyruklanmaya/çakışmaya yol açıp tek tek her birini
   // yavaşlatabiliyor. Bu yüzden yeni eklenen 3 isteği küçük aralıklarla
   // birbirinin arkasına diziyoruz — toplam yük aynı ama aynı anda değil.
+  // Stok / Ajanda / Yönetim verisi de aynı TEK açılış isteğiyle gelir; cihazdaki
+  // son kopya varsa ekran anında dolu açılır.
   try {
-    if (getToken()) {
-      setTimeout(function(){ if (typeof loadStockLists === 'function') loadStockLists(); }, 350);
-      setTimeout(function(){ if (typeof loadAgendaItems === 'function') loadAgendaItems(); }, 700);
-      setTimeout(function(){
-        var __bootUser = getStoredUser();
-        if (__bootUser && __bootUser.isAdmin && typeof loadAdminUsers === 'function') loadAdminUsers();
-      }, 1050);
-    }
+    window.__stockListsCache = Snap.get('stockLists') || window.__stockListsCache;
+    window.__agendaCache = Snap.get('agenda') || window.__agendaCache;
+    window.__adminUsersCache = Snap.get('adminUsers') || window.__adminUsersCache;
+    window.__stockItemsCacheByList = Snap.get('stockItems') || {};
   } catch (e) {}
+  bootRegister('stockLists', function(l){ renderStockLists(l); }, function(){ loadStockLists(); });
+  bootRegister('agenda', function(l){ renderAgendaList(l); }, function(){ loadAgendaItems(); });
+  bootRegister('adminUsers', function(l){ renderAdminUsers(l); }, function(){ loadAdminUsers(); });
+  // Grafik kütüphanesi küçük: boşta iken önceden yükle ki istatistik anında açılsın.
+  setTimeout(function(){ if (getToken()) loadLib(CHART_URL, 'Chart', function(){}); }, 6000);
 
   /* ===================== Anasayfa / Modül Yönlendirme ===================== */
 
@@ -1797,15 +1873,15 @@ td.num{color:var(--fg-muted)}
     });
     var prevView = __activeView;
     __activeView = view;
-    if (view==="admin") loadAdminUsers();
-    if (view==="agenda") loadAgendaItems();
+    if (view==="admin" && !isFresh('adminUsers')) loadAdminUsers();
+    if (view==="agenda" && !isFresh('agenda')) loadAgendaItems();
     if (view==="stock") showStockListsView();
     // Bir veri ekranına ilk kez geçildiğinde (veya geri dönüldüğünde) veriyi
     // hemen tazele; 20sn'lik arka plan döngüsü sadece o ekran açıkken çalışır.
     if (view!==prevView) {
-      if (view==="orders" && typeof loadOrders==="function") loadOrders();
-      if (view==="service" && typeof loadServiceRecords==="function") loadServiceRecords();
-      if (view==="personnel" && typeof loadPersonnelData==="function") loadPersonnelData();
+      if (view==="orders" && !isFresh('orders')) loadOrders();
+      if (view==="service" && !isFresh('service')) loadServiceRecords();
+      if (view==="personnel" && !isFresh('personnel')) loadPersonnelData();
     }
   }
   document.getElementById("card-orders").onclick=function(){ showView("orders"); };
@@ -1888,6 +1964,7 @@ td.num{color:var(--fg-muted)}
         applyLoggedInUi(res.user);
         loginForm.reset();
         showView('home');
+        try { window.__vegaBootLoad(); } catch(e){}
       })
       .withFailureHandler(function(err){
         loginSubmitBtn.disabled = false;
@@ -1904,10 +1981,16 @@ td.num{color:var(--fg-muted)}
 
   document.getElementById('logout-btn').onclick = function(){
     var token = getToken();
+    // Çıkışta cihazdaki kopyalar silinir ve sayfa yenilenir: bir sonraki kullanıcı
+    // öncekinin verisini (bir an bile olsa) görmesin.
+    var __reloaded = false;
+    function __afterLogout(){ if (__reloaded || getToken()) return; __reloaded = true; location.reload(); }
     if (token) {
-      window.google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).logout(token);
-    }
+      window.google.script.run.withSuccessHandler(__afterLogout).withFailureHandler(__afterLogout).logout(token);
+      setTimeout(__afterLogout, 4000);
+    } else { setTimeout(__afterLogout, 50); }
     clearSession();
+    Snap.clearAll();
     currentUser = null;
     document.getElementById('logout-btn').hidden = true;
     document.getElementById('profile-btn').hidden = true;
@@ -2101,7 +2184,7 @@ td.num{color:var(--fg-muted)}
     if (window.__adminUsersCache) renderAdminUsers(window.__adminUsersCache);
     else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(renderAdminUsers)
+      .withSuccessHandler(function(u){ markFresh('adminUsers'); renderAdminUsers(u); })
       .withFailureHandler(function(err){
         if (!window.__adminUsersCache) {
           list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Kullanıcılar yüklenemedi.')+'</div>';
@@ -2113,7 +2196,7 @@ td.num{color:var(--fg-muted)}
     document.getElementById('admin-user-count').textContent = users.length + ' kullanıcı';
     var list = document.getElementById('admin-user-list');
     if (!users.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz kullanıcı yok.</div>'; return; }
-    window.__adminUsersCache = users;
+    window.__adminUsersCache = users; Snap.set('adminUsers', users);
     list.innerHTML = users.map(function(u){
       var initials = (u.fullName||u.username||'?').trim().split(/\s+/).map(function(p){return p[0];}).slice(0,2).join('').toUpperCase();
       // Baş harfler HER ZAMAN arkada hazır bulunur; fotoğraf varsa üzerine
@@ -2265,7 +2348,7 @@ td.num{color:var(--fg-muted)}
     if (window.__agendaCache) renderAgendaList(window.__agendaCache);
     else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(renderAgendaList)
+      .withSuccessHandler(function(u){ markFresh('agenda'); renderAgendaList(u); })
       .withFailureHandler(function(err){
         if (!window.__agendaCache) {
           list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Ajanda yüklenemedi.')+'</div>';
@@ -2274,7 +2357,7 @@ td.num{color:var(--fg-muted)}
       .getAgendaItems(getToken());
   }
   function renderAgendaList(items){
-    window.__agendaCache = items;
+    window.__agendaCache = items; Snap.set('agenda', items);
     document.getElementById('agenda-count').textContent = items.length + ' not';
     var list = document.getElementById('agenda-list');
     if (!items.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz bir notunuz yok.</div>'; return; }
@@ -2368,7 +2451,8 @@ td.num{color:var(--fg-muted)}
     document.getElementById('stock-items-view').hidden = true;
     document.getElementById('stock-title').textContent = 'STOK TAKİBİ';
     document.getElementById('stock-sub').textContent = 'Stok listeleri';
-    loadStockLists();
+    if (!isFresh('stockLists')) loadStockLists();
+    else if (window.__stockListsCache) renderStockLists(window.__stockListsCache);
   }
 
   function loadStockLists(){
@@ -2380,7 +2464,7 @@ td.num{color:var(--fg-muted)}
     if (window.__stockListsCache) renderStockLists(window.__stockListsCache);
     else list.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
-      .withSuccessHandler(renderStockLists)
+      .withSuccessHandler(function(u){ markFresh('stockLists'); renderStockLists(u); })
       .withFailureHandler(function(err){
         if (!window.__stockListsCache) {
           list.innerHTML = '<div class="hint" style="padding:16px;color:var(--danger,#E2493D)">'+escAdmin((err&&err.message)||'Listeler yüklenemedi.')+'</div>';
@@ -2390,7 +2474,7 @@ td.num{color:var(--fg-muted)}
   }
 
   function renderStockLists(lists){
-    window.__stockListsCache = lists;
+    window.__stockListsCache = lists; Snap.set('stockLists', lists);
     document.getElementById('stock-list-count').textContent = lists.length + ' liste';
     var list = document.getElementById('stock-lists');
     if (!lists.length) { list.innerHTML = '<div class="hint" style="padding:16px">Henüz bir stok listesi yok. "+ Yeni Liste" ile başlayın.</div>'; return; }
@@ -2478,6 +2562,7 @@ td.num{color:var(--fg-muted)}
   }
 
   function loadStockItems(listId){
+    __fresh.stockLists = 0; // kalem değişince liste sayaçları (kritik adedi) bayatlar
     var el = document.getElementById('stock-items');
     window.__stockItemsCacheByList = window.__stockItemsCacheByList || {};
     var cached = window.__stockItemsCacheByList[listId];
@@ -2485,7 +2570,7 @@ td.num{color:var(--fg-muted)}
     else el.innerHTML = '<div class="hint" style="padding:16px">Yükleniyor…</div>';
     window.google.script.run
       .withSuccessHandler(function(items){
-        window.__stockItemsCacheByList[listId] = items;
+        window.__stockItemsCacheByList[listId] = items; Snap.set('stockItems', window.__stockItemsCacheByList);
         // Kullanıcı bu arada başka bir listeye geçmiş olabilir; sadece hâlâ
         // açık olan liste için gelen sonucu ekrana basıyoruz.
         if (stkState.currentListId === listId) renderStockItems(items);
@@ -2695,7 +2780,7 @@ td.num{color:var(--fg-muted)}
 
   /* ===================== Bildirim zili ===================== */
   (function(){
-    var bellNotifications = [];
+    var bellNotifications = Snap.get('notifs') || [];
     function timeAgo(dateStr){
       var d = new Date(dateStr);
       var diff = Math.round((Date.now()-d.getTime())/60000);
@@ -2725,13 +2810,13 @@ td.num{color:var(--fg-muted)}
     function loadNotifications(){
       if (!getToken || !getToken()) return;
       window.google.script.run
-        .withSuccessHandler(function(list){ bellNotifications = list || []; renderBell(); })
+        .withSuccessHandler(function(list){ bellNotifications = list || []; Snap.set('notifs', bellNotifications); renderBell(); })
         .withFailureHandler(function(){ /* sessizce geç, zil boş kalır */ })
         .getNotifications(getToken());
     }
     window.vegaRefreshNotifications = loadNotifications;
     renderBell();
-    loadNotifications();
+    bootRegister('notifications', function(list){ bellNotifications = list || []; Snap.set('notifs', bellNotifications); renderBell(); }, loadNotifications);
     // Uygulama açıkken arkaplanda da birkaç dakikada bir tazele.
     setInterval(loadNotifications, 120000);
 
@@ -2779,6 +2864,7 @@ td.num{color:var(--fg-muted)}
     search: "",
     pendingDeleteId: null
   };
+  (function(){ var sn=Snap.get('service'); if (sn && sn.length!==undefined) { sState.records=sn; sState.loaded=true; } })();
 
   function ynOptions(selected){
     return '<option value="" '+(selected? "":"selected")+'>—</option>'+
@@ -3131,6 +3217,11 @@ td.num{color:var(--fg-muted)}
   document.getElementById("s-btn-report").onclick=function(){ sExportExcelReport(); };
 
   function sExportExcelReport(){
+    var st=document.getElementById("s-report-status");
+    st.hidden=false; st.style.color=""; st.textContent="Rapor hazırlanıyor…";
+    loadLib(XLSX_URL, "XLSX", function(){ sExportExcelReportImpl(); });
+  }
+  function sExportExcelReportImpl(){
     var statusEl=document.getElementById("s-report-status");
     statusEl.hidden=false;
     statusEl.style.color="";
@@ -3203,12 +3294,12 @@ td.num{color:var(--fg-muted)}
 
   function loadServiceRecords(){
     google.script.run.withSuccessHandler(function(records){
-      sState.records=records; sState.loaded=true; sRender();
+      sState.records=records; sState.loaded=true; markFresh('service'); Snap.set('service', records); sRender();
     }).withFailureHandler(function(){
       sState.loaded=true; sRender();
     }).getServiceRecords();
   }
-  loadServiceRecords();
+  bootRegister('service', function(records){ sState.records=records; sState.loaded=true; Snap.set('service', records); sRender(); }, loadServiceRecords);
   setInterval(function(){ if (__activeView==="service") loadServiceRecords(); }, 20000);
 
   /* ===================== Personel Takibi ===================== */
@@ -3236,6 +3327,7 @@ td.num{color:var(--fg-muted)}
   }
 
   var pState = { personnel:[], leaves:[], loaded:false, search:"", showInactive:false, pendingDeleteId:null };
+  (function(){ var sn=Snap.get('personnel'); if (sn && sn.personnel) { pState.personnel=sn.personnel; pState.leaves=sn.leaves||[]; pState.loaded=true; } })();
 
   function pIsActive(o){ return !o.endDate; }
 
@@ -3655,13 +3747,24 @@ td.num{color:var(--fg-muted)}
 
   function loadPersonnelData(){
     google.script.run.withSuccessHandler(function(data){
-      pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; pRender();
+      pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; markFresh('personnel'); Snap.set('personnel', data); pRender();
     }).withFailureHandler(function(){
       pState.loaded=true; pRender();
     }).getPersonnelData();
   }
-  loadPersonnelData();
+  bootRegister('personnel', function(data){ pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
   setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
+
+  // Sayfa kapanırken/arka plana giderken son durumu cihaza kaydet.
+  function saveSnapshots(){
+    try {
+      if (state.loaded) Snap.set('orders', state.orders);
+      if (sState.loaded) Snap.set('service', sState.records);
+      if (pState.loaded) Snap.set('personnel', { personnel: pState.personnel, leaves: pState.leaves });
+    } catch(e){}
+  }
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) saveSnapshots(); });
+  window.addEventListener('pagehide', saveSnapshots);
 })();
 </script>
 <script>
