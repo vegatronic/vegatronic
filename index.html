@@ -116,6 +116,9 @@ h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em;text-wrap:balance
 .stat-clickable{cursor:pointer;transition:transform .15s cubic-bezier(.16,1,.3,1),box-shadow .15s,border-color .15s}
 .stat-clickable:hover,.stat-clickable:focus-visible{box-shadow:var(--shadow-lift);transform:translateY(-3px);border-color:transparent;outline:none}
 .stat-clickable:active{transform:scale(.98)}
+.p-stat-click{cursor:pointer;transition:transform .15s cubic-bezier(.16,1,.3,1),box-shadow .15s,border-color .15s}
+.p-stat-click:hover,.p-stat-click:focus-visible{box-shadow:var(--shadow-lift);transform:translateY(-3px);border-color:transparent;outline:none}
+.p-stat-click:active{transform:scale(.98)}
 .stat-icon{flex:none;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center}
 .stat-icon svg{width:21px;height:21px}
 .stat-icon.tone-accent{background:var(--accent-bg);color:var(--accent)}
@@ -501,7 +504,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791196494";
+  var MY = "1791215123";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -3636,11 +3639,74 @@ td.num{color:var(--fg-muted)}
       ];
     }
     var pStatsEl = document.getElementById("p-stats");
+    var P_KEYS=["active","present","leave","school","year"];
     pStatsEl.innerHTML = tiles.map(function(t,i){
-      return '<div class="stat fade-up" style="animation-delay:'+(i*55)+'ms"><div class="stat-icon tone-'+t.tone+'">'+t.icon+'</div><div class="stat-text"><div class="label">'+esc(trUp(t.label))+'</div><div class="value">'+statValueHtml(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div></div>';
+      return '<div class="stat fade-up p-stat-click" data-pstat="'+P_KEYS[i]+'" tabindex="0" role="button" style="animation-delay:'+(i*55)+'ms"><div class="stat-icon tone-'+t.tone+'">'+t.icon+'</div><div class="stat-text"><div class="label">'+esc(trUp(t.label))+'</div><div class="value">'+statValueHtml(t.value)+(t.sub?' <small>'+esc(t.sub)+'</small>':'')+'</div></div></div>';
     }).join("");
     animateCounters(pStatsEl);
   }
+
+  // Üstteki kutucuklara dokununca ilgili kişilerin listesi açılır.
+  function openPersonnelStatModal(key){
+    var today=todayStr(), weekend=isWeekend(today);
+    var active=pState.personnel.filter(pIsActive);
+    var byName=function(a,b){ return (a.fullName||"").localeCompare(b.fullName||"","tr"); };
+    var W='style="white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word"';
+    function personRow(o, meta){
+      return '<div class="stat-row"><div class="c-name" '+W+'><div style="font-weight:600">'+esc(o.fullName)+'</div><div class="hint" style="margin:0">'+esc(o.role||"—")+'</div></div>'+
+        '<div class="c-num" style="flex:0 0 auto;max-width:48%;text-align:right;white-space:normal">'+esc(meta||"")+'</div></div>';
+    }
+    var title="", note="", rows="";
+    if(key==="active"){
+      title="Aktif Personel"; var l=active.slice().sort(byName);
+      note=l.length+" kişi";
+      rows=l.map(function(o){ return personRow(o, pTenureStr(o)); }).join("");
+    } else if(key==="year"){
+      var year=String(new Date().getFullYear());
+      title=year+" Toplam İzin";
+      var ls=pState.leaves.filter(function(x){ return x.startDate && x.startDate.slice(0,4)===year; })
+        .sort(function(a,b){ return (b.startDate||"").localeCompare(a.startDate||""); });
+      var total=ls.reduce(function(t,x){ return t+(Number(x.days)||0); },0);
+      note=ls.length+" kayıt, toplam "+total+" gün";
+      rows=ls.map(function(x){
+        var o=pState.personnel.find(function(p){ return p.id===x.personnelId; })||{fullName:"(silinmiş kişi)",role:""};
+        return '<div class="stat-row"><div class="c-name" '+W+'><div style="font-weight:600">'+esc(o.fullName)+'</div><div class="hint" style="margin:0">'+esc(x.leaveType||"İzin")+(x.reason?' · '+esc(x.reason):'')+'</div></div>'+
+          '<div class="c-num" style="flex:0 0 auto;max-width:48%;text-align:right;white-space:normal">'+fmtDate(x.startDate)+(x.endDate&&x.endDate!==x.startDate?' – '+fmtDate(x.endDate):'')+'<br>'+(Number(x.days)||0)+' gün</div></div>';
+      }).join("");
+    } else if(weekend){
+      title={present:"Bugün Mevcut",leave:"Bugün İzinli",school:"Bugün Okulda"}[key]||"";
+      note="Bugün tatil günü.";
+    } else if(key==="present"){
+      title="Bugün Mevcut";
+      var pr=active.filter(function(o){ return !pLeaveOnDate(o.id,today) && !pIsSchoolDayToday(o); }).sort(byName);
+      note=pr.length+" kişi"; rows=pr.map(function(o){ return personRow(o, pTenureStr(o)); }).join("");
+    } else if(key==="leave"){
+      title="Bugün İzinli";
+      var lv=active.filter(function(o){ return !!pLeaveOnDate(o.id,today); }).sort(byName);
+      note=lv.length+" kişi";
+      rows=lv.map(function(o){ var l=pLeaveOnDate(o.id,today); return personRow({fullName:o.fullName,role:(l.leaveType||"İzin")+(l.reason?' · '+l.reason:'')}, fmtDate(l.endDate)+"'e kadar"); }).join("");
+    } else if(key==="school"){
+      title="Bugün Okulda";
+      var sc=active.filter(function(o){ return !pLeaveOnDate(o.id,today) && pIsSchoolDayToday(o); }).sort(byName);
+      note=sc.length+" kişi"; rows=sc.map(function(o){ return personRow(o, o.schoolDay||""); }).join("");
+    } else { return; }
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true" style="max-width:560px">'+
+      '<h2>'+esc(title)+'</h2><div class="hint">'+esc(note)+'</div>'+
+      '<div class="stat-list" style="max-height:55vh;overflow-y:auto;flex-shrink:0">'+(rows||'<div class="stat-row empty">Kayıt yok.</div>')+'</div>'+
+      '<div class="modal-actions"><button class="btn" data-action="close" type="button">Kapat</button></div></div>'
+    );
+    overlay.querySelector('[data-action="close"]').onclick=closeModal;
+  }
+  document.getElementById("p-stats").addEventListener("click", function(e){
+    var el=e.target.closest("[data-pstat]");
+    if(el) openPersonnelStatModal(el.getAttribute("data-pstat"));
+  });
+  document.getElementById("p-stats").addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" ") return;
+    var el=e.target.closest("[data-pstat]");
+    if(el){ e.preventDefault(); openPersonnelStatModal(el.getAttribute("data-pstat")); }
+  });
 
   function pRenderToday(){
     var today=todayStr();
