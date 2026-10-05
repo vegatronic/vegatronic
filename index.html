@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791195569";
+  var MY = "1791195888";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -2723,7 +2723,7 @@ td.num{color:var(--fg-muted)}
       var thumb = it.fotoUrl
         ? '<img class="stock-thumb" src="'+escAdmin(it.fotoUrl)+'" alt="">'
         : '<div class="stock-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>';
-      return '<tr'+(isCritical?' class="stock-critical-row"':'')+'>'+
+      return '<tr data-item-id="'+escAdmin(it.id)+'" style="cursor:pointer"'+(isCritical?' class="stock-critical-row"':'')+'>'+
         '<td><div class="stock-item-cell">'+thumb+
           '<div><div class="stock-item-name">'+escAdmin(it.tanimi)+'</div>'+
           (it.stokNo?'<div class="stock-item-no">Stok No: '+escAdmin(it.stokNo)+'</div>':'')+
@@ -2741,6 +2741,15 @@ td.num{color:var(--fg-muted)}
     el.innerHTML = '<div class="table-wrap"><table class="stock-items-table"><thead><tr>'+
       '<th>ÜRÜN</th><th>MARKA</th><th>ÜRÜN KODU</th><th>ADET</th><th>KULLANIM ADETİ (1 ÜRÜNDE)</th><th></th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    el.querySelectorAll('tr[data-item-id]').forEach(function(tr){
+      tr.addEventListener('click', function(e){
+        if (e.target.closest('button')) return;
+        var id = tr.getAttribute('data-item-id');
+        if (String(id).indexOf('tmp_') === 0) return;
+        var it = (window.__stockItemsCache||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+        if (it) openStockItemDetail(it);
+      });
+    });
     el.querySelectorAll('[data-act]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var act = btn.getAttribute('data-act');
@@ -2755,6 +2764,38 @@ td.num{color:var(--fg-muted)}
         }
       });
     });
+  }
+
+  // Ürüne dokununca: büyük fotoğraf + tüm bilgiler
+  function openStockItemDetail(it){
+    var isCritical = it.minAdet !== '' && it.minAdet != null && Number(it.adet) < Number(it.minAdet);
+    var big = it.fotoUrl ? String(it.fotoUrl).replace(/sz=w\d+/, 'sz=w1400') : '';
+    var photo = big
+      ? '<a href="'+escAdmin(big)+'" target="_blank" rel="noopener"><img src="'+escAdmin(big)+'" alt="" style="width:100%;max-height:48vh;object-fit:contain;border-radius:14px;background:var(--surface-2,var(--bg));border:1px solid var(--border);display:block"></a>'
+      : '<div class="stock-thumb-placeholder" style="width:100%;height:140px;border-radius:14px"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 2-2 3 3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></div>';
+    function row(label, val){
+      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="color:var(--fg-muted);font-size:13px">'+label+'</span><span style="font-weight:600;text-align:right;min-width:0;word-break:break-word">'+val+'</span></div>';
+    }
+    var dash = '—';
+    openModal(
+      '<div class="modal" role="dialog" aria-modal="true" style="max-width:520px">'+
+        photo+
+        '<h2 style="margin:14px 0 2px">'+escAdmin(it.tanimi)+'</h2>'+
+        (it.stokNo?'<div class="stock-item-no" style="margin-bottom:6px">Stok No: '+escAdmin(it.stokNo)+'</div>':'')+
+        '<div style="display:flex;align-items:baseline;gap:10px;margin:6px 0 4px">'+
+          '<span style="font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">'+escAdmin(it.adet)+'</span>'+
+          '<span style="font-size:16px;color:var(--fg-muted)">'+escAdmin(it.birim||'Adet')+'</span>'+
+          (isCritical?'<span class="stock-critical-pill">⚠ Kritik seviye</span>':'')+
+        '</div>'+
+        row('Marka', it.marka?escAdmin(it.marka):dash)+
+        row('Ürün kodu', it.urunKodu?escAdmin(it.urunKodu):dash)+
+        row('Minimum adet (kritik sınır)', (it.minAdet!==''&&it.minAdet!=null)?escAdmin(it.minAdet):dash)+
+        row('Kullanım adeti (1 üründe)', (it.kullanimAdeti!==''&&it.kullanimAdeti!=null)?escAdmin(it.kullanimAdeti):dash)+
+        '<div class="modal-actions"><button class="btn" data-action="close" type="button">Kapat</button><button class="btn btn-primary" data-action="edit" type="button">Düzenle</button></div>'+
+      '</div>'
+    );
+    overlay.querySelector('[data-action="close"]').onclick = closeModal;
+    overlay.querySelector('[data-action="edit"]').onclick = function(){ closeModal(); openStockItemModal(it); };
   }
 
   var STOCK_UNITS = ['Adet','Metre','Kg','Kutu','Paket','Litre','Çift','Rulo'];
