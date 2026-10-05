@@ -10,7 +10,7 @@
 // dosya kaydedilirse biri diğerini devre dışı bırakır. Bu yüzden ikisi tek
 // dosyada birleştirildi.
 
-var CACHE_NAME = "vega-takip-v5";
+var CACHE_NAME = "vega-takip-v6";
 var ASSETS = [
   "./",
   "./index.html",
@@ -45,6 +45,7 @@ self.addEventListener("fetch", function (event) {
   var req = event.request;
   if (req.method !== "GET") return; // veri yazma çağrılarına dokunma
   var url = new URL(req.url);
+  if (url.pathname.slice(-12) === "version.json") return; // sürüm kontrolü her zaman ağdan
 
   // Sabit kütüphane/yazı tipi dosyaları (sürüm numarası adreste olduğu için
   // içerikleri hiç değişmez): önce önbellek, yoksa ağdan alıp sakla. Böylece

@@ -497,6 +497,27 @@ td.num{color:var(--fg-muted)}
 })();
 </script>
 
+<script>
+// Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
+// çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
+(function(){
+  var MY = "1791188215";
+  function check(){
+    if (document.hidden) return;
+    fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.v && j.v !== MY) {
+        if (document.querySelector(".modal")) return;
+        try { navigator.serviceWorker.getRegistration().then(function(reg){ if (reg) reg.update(); }); } catch(e){}
+        location.reload();
+      }
+    }).catch(function(){});
+  }
+  setInterval(check, 60000);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) check(); });
+  window.addEventListener("focus", check);
+})();
+</script>
+
 <div id="app">
 
   <div id="view-home">
