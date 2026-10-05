@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791188488";
+  var MY = "1791188889";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -512,6 +512,7 @@ td.num{color:var(--fg-muted)}
       }
     }).catch(function(){});
   }
+  setTimeout(check, 2500);
   setInterval(check, 60000);
   document.addEventListener("visibilitychange", function(){ if (!document.hidden) check(); });
   window.addEventListener("focus", check);
@@ -915,19 +916,22 @@ td.num{color:var(--fg-muted)}
   function bootRegister(key, apply, fallback){
     __boot.waiters[key] = { apply: apply, fallback: fallback };
     if (!getToken()) return;
-    if (!__boot.started) { __boot.started = true; setTimeout(bootRun, 0); }
+    // İstek ilk kayıt anında HEMEN gider (sonraki kayıtlar cevap gelene kadar yetişir).
+    if (!__boot.started) { __boot.started = true; bootRun(); }
   }
   function bootRun(){
     __boot.started = true;
     var u = getStoredUser();
-    var keys = Object.keys(__boot.waiters).filter(function(k){ return k !== 'adminUsers' || (u && u.isAdmin); });
-    keys.forEach(markFresh); // istek yolda: ekrana girince aynı veriyi ikinci kez isteme
+    function wantedKeys(){ return Object.keys(__boot.waiters).filter(function(k){ return k !== 'adminUsers' || (u && u.isAdmin); }); }
+    // istek yolda: ekrana girince aynı veriyi ikinci kez isteme
+    ['orders','service','personnel','stockLists','agenda','notifications'].concat(u && u.isAdmin ? ['adminUsers'] : []).forEach(markFresh);
     function runFallbacks(list){
       list.forEach(function(k, i){ setTimeout(function(){ try { __boot.waiters[k].fallback(); } catch(e){} }, i*350); });
     }
     window.google.script.run
       .withSuccessHandler(function(d){
         d = d || {};
+        var keys = wantedKeys();
         var missing = [];
         keys.forEach(function(k){
           if (d[k] === undefined || d[k] === null) { missing.push(k); return; }
@@ -936,7 +940,7 @@ td.num{color:var(--fg-muted)}
         });
         runFallbacks(missing);
       })
-      .withFailureHandler(function(){ runFallbacks(keys); })
+      .withFailureHandler(function(){ runFallbacks(wantedKeys()); })
       .getBootData(getToken());
   }
   window.__vegaBootLoad = function(){ bootRun(); };

@@ -10,7 +10,7 @@
 // dosya kaydedilirse biri diğerini devre dışı bırakır. Bu yüzden ikisi tek
 // dosyada birleştirildi.
 
-var CACHE_NAME = "vega-takip-v6";
+var CACHE_NAME = "vega-takip-v7";
 var ASSETS = [
   "./",
   "./index.html",
@@ -69,18 +69,21 @@ self.addEventListener("fetch", function (event) {
 
   if (url.origin !== self.location.origin) return; // Apps Script çağrılarına dokunma
 
-  // Sayfanın kendisi (HTML) her zaman önce ağdan denenir, böylece yeni bir
-  // sürüm yayınlandığında kullanıcı anında görür. Sadece ağ ulaşılamazsa
-  // (çevrimdışı) önbellekteki son sürüme düşer.
+  // Sayfanın kendisi (HTML): önce cihazdaki kopya HEMEN gösterilir (ağı beklemeden),
+  // arkadan en güncel sürüm indirilir. Yeni sürüm yayınlanınca sayfa içindeki
+  // sürüm kontrolü (version.json) açık sayfayı kendiliğinden yeniler.
   if (req.mode === "navigate" || (req.headers.get("accept") || "").indexOf("text/html") !== -1) {
     event.respondWith(
-      fetch(req).then(function (res) {
-        if (res && res.ok) {
-          var copy = res.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
-        }
-        return res;
-      }).catch(function () { return caches.match(req); })
+      caches.match(req).then(function (cached) {
+        var network = fetch(req).then(function (res) {
+          if (res && res.ok) {
+            var copy = res.clone();
+            caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+          }
+          return res;
+        }).catch(function () { return cached; });
+        return cached || network;
+      })
     );
     return;
   }
