@@ -3850,6 +3850,8 @@ td.num{color:var(--fg-muted)}
     writeFast('personnel', function(){ pState[field] = mut(pState[field].slice()); pRender(); }, send,
       function(list){ pState[field]=list; pState.loaded=true; Snap.set('personnel', {personnel:pState.personnel, leaves:pState.leaves}); pRender(); }, loadPersonnelData);
   }
+  // Cihazdaki kopya varsa tabloyu HEMEN çiz (sunucu cevabını bekleme).
+  if (pState.loaded) { try { pRender(); } catch(e){} }
   bootRegister('personnel', function(data){ if(isPend('personnel')) return; pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
   setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
 
