@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791189510";
+  var MY = "1791195569";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -1243,13 +1243,13 @@ td.num{color:var(--fg-muted)}
     if(!meta) return;
     var list=(state.statLists&&state.statLists[key])||[];
     var totalQty=list.reduce(function(s,o){return s+(Number(o.quantity)||0);},0);
-    var headCols = '<div class="stat-row head"><div class="c-name">SİPARİŞ</div><div class="c-name">ÜRÜN</div>'+
+    var headCols = '<div class="stat-row head"><div class="c-name">FİRMA</div><div class="c-name">ÜRÜN</div>'+
       (meta.showStatus?'<div class="c-name" style="flex:0 0 140px">DURUM</div>':'')+
       '<div class="c-num">ADET</div></div>';
     var rows = list.length ? list.slice().sort(function(a,b){
       return (b.orderDate||"").localeCompare(a.orderDate||"");
     }).map(function(o){
-      return '<div class="stat-row"><div class="c-name">'+esc(o.orderNo)+' · '+esc(o.customer)+'</div><div class="c-name">'+esc(o.product)+'</div>'+
+      return '<div class="stat-row"><div class="c-name" style="white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word">'+esc(o.customer)+'</div><div class="c-name" style="white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word">'+esc(o.product)+'</div>'+
         (meta.showStatus?'<div class="c-name" style="flex:0 0 140px">'+statusPill(o)+'</div>':'')+
         '<div class="c-num">'+esc(o.quantity||1)+'</div></div>';
     }).join("") : '<div class="stat-row empty">Kayıt yok.</div>';
