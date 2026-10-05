@@ -3855,6 +3855,29 @@ td.num{color:var(--fg-muted)}
   bootRegister('personnel', function(data){ if(isPend('personnel')) return; pState.personnel=data.personnel; pState.leaves=data.leaves; pState.loaded=true; Snap.set('personnel', data); pRender(); }, loadPersonnelData);
   setInterval(function(){ if (__activeView==="personnel") loadPersonnelData(); }, 20000);
 
+  // Başka cihazdan yapılan değişiklikler (telefonda stok değiştirdiniz → bilgisayarda
+  // görünsün): açık olan ekran düzenli aralıkla sessizce tazelenir; sekmeye/uygulamaya
+  // dönüldüğünde de hemen tazelenir. (Eskiden Stok/Ajanda/Yönetim hiç tazelenmiyordu,
+  // yalnızca bildirim zili 2 dakikada bir kontrol ediliyordu.)
+  function refreshActiveView(){
+    if (document.hidden || !getToken()) return;
+    try {
+      var v = __activeView;
+      if (v === 'orders' && !isPend('orders')) loadOrders();
+      else if (v === 'service' && !isPend('service')) loadServiceRecords();
+      else if (v === 'personnel' && !isPend('personnel')) loadPersonnelData();
+      else if (v === 'agenda' && !isPend('agenda')) loadAgendaItems();
+      else if (v === 'admin') loadAdminUsers();
+      else if (v === 'stock' && !isPend('stock')) {
+        if (stkState.currentListId) loadStockItems(stkState.currentListId); else loadStockLists();
+      }
+      if (window.vegaRefreshNotifications) window.vegaRefreshNotifications();
+    } catch(e){}
+  }
+  setInterval(function(){ if (__activeView==='stock' || __activeView==='agenda' || __activeView==='admin') refreshActiveView(); }, 15000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshActiveView(); });
+  window.addEventListener('focus', refreshActiveView);
+
   // Sayfa kapanırken/arka plana giderken son durumu cihaza kaydet.
   function saveSnapshots(){
     try {
