@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791189386";
+  var MY = "1791189510";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -1925,8 +1925,15 @@ td.num{color:var(--fg-muted)}
     });
     var prevView = __activeView;
     __activeView = view;
-    if (view==="admin" && !isFresh('adminUsers')) loadAdminUsers();
-    if (view==="agenda" && !isFresh('agenda')) loadAgendaItems();
+    // Cihazdaki/önceki kopya varsa ekran HEMEN dolsun; veri tazeyse sunucuya gitme.
+    if (view==="admin") {
+      if (window.__adminUsersCache) renderAdminUsers(window.__adminUsersCache);
+      if (!isFresh('adminUsers')) loadAdminUsers();
+    }
+    if (view==="agenda") {
+      if (window.__agendaCache) renderAgendaList(window.__agendaCache);
+      if (!isFresh('agenda')) loadAgendaItems();
+    }
     if (view==="stock") showStockListsView();
     // Bir veri ekranına ilk kez geçildiğinde (veya geri dönüldüğünde) veriyi
     // hemen tazele; 20sn'lik arka plan döngüsü sadece o ekran açıkken çalışır.
