@@ -501,7 +501,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791188889";
+  var MY = "1791189386";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -2315,6 +2315,7 @@ td.num{color:var(--fg-muted)}
       '<div class="field"><label>Yeni şifre (opsiyonel — boş bırakılırsa değişmez)</label><input type="text" id="eu-password" placeholder="Değiştirmek istemiyorsanız boş bırakın"></div>'+
       '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="eu-admin"'+(u.isAdmin?' checked':'')+'> Yönetici yetkisi ver (tüm izinleri otomatik kapsar)</label>'+
       '<div id="eu-perms" style="display:flex;flex-direction:column;gap:10px">'+permsHtml+'</div>'+
+      '<div id="eu-notifs">'+notifHtml(userNotifSet(u))+'</div>'+
       '<div class="err" id="eu-err" style="display:none"></div>'+
       '<div class="modal-actions"><button class="btn" data-action="cancel" type="button">Vazgeç</button><button class="btn btn-primary" data-action="save" type="button">Kaydet</button></div>'+
       '</div>'
@@ -2330,6 +2331,7 @@ td.num{color:var(--fg-muted)}
       var newPw = document.getElementById('eu-password').value;
       if (newPw) payload.newPassword = newPw;
       overlay.querySelectorAll('#eu-perms input[type=checkbox]').forEach(function(cb){ payload[cb.name] = cb.checked; });
+      payload.notifTypes = collectNotif(document.getElementById('eu-notifs'));
       if (!payload.fullName || !payload.username) { errBox.textContent = 'Ad soyad ve kullanıcı adı zorunludur.'; errBox.style.display='block'; return; }
       var btn = this;
       btn.disabled = true;
@@ -2346,6 +2348,35 @@ td.num{color:var(--fg-muted)}
     };
   }
 
+  var NOTIF_TYPES = [
+    ['order_added','Yeni sipariş eklendiğinde'],
+    ['order_late','Sipariş geç kalıp mazeret girildiğinde'],
+    ['order_delivered','Sipariş teslim edildiğinde'],
+    ['service_added','Yeni servis kaydı açıldığında'],
+    ['leave_added','Yeni izin kaydı girildiğinde'],
+    ['user_created','Yeni kullanıcı oluşturulduğunda'],
+    ['user_deactivated','Bir kullanıcı sistemden çıkarıldığında'],
+    ['stock_critical','Stok kalemi kritik seviyenin altına düştüğünde']
+  ];
+  // Kullanıcının hangi bildirimleri aldığı: boşsa yönetici hepsini, diğerleri hiçbirini alır.
+  function userNotifSet(u){
+    var v = String(u.notifTypes||'').trim();
+    if (!v) return u.isAdmin ? NOTIF_TYPES.map(function(t){return t[0];}) : [];
+    if (v === 'none') return [];
+    return v.split(',').map(function(x){ return x.trim(); });
+  }
+  function notifHtml(selected, prefix){
+    return '<div class="perm-group"><h4>Bildirimler — bu kullanıcıya hangileri gitsin?</h4><div class="perm-check-row" style="flex-direction:column;align-items:flex-start;gap:6px">'+
+      NOTIF_TYPES.map(function(t){
+        return '<label><input type="checkbox" data-notif="'+t[0]+'"'+(selected.indexOf(t[0])!==-1?' checked':'')+'>'+escAdmin(t[1])+'</label>';
+      }).join('')+
+    '</div><div class="hint">Seçilenler hem uygulama içi zilde hem telefona/bilgisayara anlık bildirim olarak gider.</div></div>';
+  }
+  function collectNotif(scope){
+    var picked = [];
+    scope.querySelectorAll('input[data-notif]').forEach(function(cb){ if (cb.checked) picked.push(cb.getAttribute('data-notif')); });
+    return picked.length ? picked.join(',') : 'none';
+  }
   var PERM_GROUPS = [
     { title:'Üretim – Teslimat', perms:[['perm_uretim_view','Görüntüleme'],['perm_uretim_add','Ekleme'],['perm_uretim_edit','Düzenleme'],['perm_uretim_delete','Silme'],['perm_uretim_deliver','Teslim İşlemi']] },
     { title:'Bakım – Servis', perms:[['perm_servis_view','Görüntüleme'],['perm_servis_add','Ekleme'],['perm_servis_edit','Düzenleme'],['perm_servis_delete','Silme']] },
@@ -2366,6 +2397,7 @@ td.num{color:var(--fg-muted)}
       '<div class="field"><label>Geçici şifre</label><input type="text" id="nu-password" required></div>'+
       '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="nu-admin"> Yönetici yetkisi ver (tüm izinleri otomatik kapsar)</label>'+
       '<div id="nu-perms" style="display:flex;flex-direction:column;gap:10px">'+permsHtml+'</div>'+
+      '<div id="nu-notifs">'+notifHtml([])+'</div>'+
       '<div class="modal-actions"><button class="btn" data-action="cancel" type="button">Vazgeç</button><button class="btn btn-primary" data-action="save" type="button">Kullanıcıyı Oluştur</button></div>'+
       '</div>'
     );
@@ -2378,6 +2410,7 @@ td.num{color:var(--fg-muted)}
         isAdmin: document.getElementById('nu-admin').checked
       };
       overlay.querySelectorAll('#nu-perms input[type=checkbox]').forEach(function(cb){ payload[cb.name] = cb.checked; });
+      payload.notifTypes = collectNotif(document.getElementById('nu-notifs'));
       if (!payload.fullName || !payload.username || !payload.password) { alert('Ad soyad, kullanıcı adı ve şifre zorunludur.'); return; }
       window.google.script.run
         .withSuccessHandler(function(){ closeModal(); loadAdminUsers(); })
