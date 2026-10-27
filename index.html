@@ -504,7 +504,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1793081384";
+  var MY = "1793081749";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -3861,7 +3861,7 @@ td.num{color:var(--fg-muted)}
 
   function openPersonnelModal(existing){
     var isEdit=!!existing;
-    var o=existing||{fullName:"",role:"",phone:"",startDate:todayStr(),endDate:"",notes:"",personnelType:"personel",schoolDay:""};
+    var o=existing||{fullName:"",role:"",phone:"",startDate:todayStr(),endDate:"",notes:"",personnelType:"personel",schoolDay:"",address:""};
     var isStajyerInitial=pIsStajyer(o);
     openModal(
       '<div class="modal" role="dialog" aria-modal="true">'+
@@ -3871,6 +3871,7 @@ td.num{color:var(--fg-muted)}
         '<div class="field"><label for="p-role">Görevi</label><input id="p-role" value="'+esc(o.role||"")+'" placeholder="Örn: Üretim Operatörü"></div>'+
         '<div class="field"><label for="p-phone">Telefon</label><input id="p-phone" value="'+esc(o.phone||"")+'" placeholder="İsteğe bağlı"></div>'+
       '</div>'+
+      '<div class="field"><label for="p-address">Ev Adresi</label><textarea id="p-address" rows="2" placeholder="Mahalle, sokak, no, ilçe/il">'+esc(o.address||"")+'</textarea></div>'+
       '<div class="field-row">'+
         '<div class="field"><label for="p-type">Personel Türü</label><select id="p-type">'+
           '<option value="personel"'+(isStajyerInitial?'':' selected')+'>Personel</option>'+
@@ -3906,6 +3907,7 @@ td.num{color:var(--fg-muted)}
       var fullName=overlay.querySelector("#p-name").value.trim();
       var role=overlay.querySelector("#p-role").value.trim();
       var phone=overlay.querySelector("#p-phone").value.trim();
+      var address=overlay.querySelector("#p-address").value.trim();
       var personnelType=overlay.querySelector("#p-type").value;
       var schoolDay=personnelType==="stajyer" ? overlay.querySelector("#p-schoolday").value : "";
       var startDate=overlay.querySelector("#p-start").value;
@@ -3924,7 +3926,7 @@ td.num{color:var(--fg-muted)}
       }
       var btn=overlay.querySelector("#p-save");
       btn.disabled=true;
-      var payload={fullName:fullName,role:role,phone:phone,startDate:startDate,endDate:endDate||"",notes:notes,personnelType:personnelType,schoolDay:schoolDay};
+      var payload={fullName:fullName,role:role,phone:phone,address:address,startDate:startDate,endDate:endDate||"",notes:notes,personnelType:personnelType,schoolDay:schoolDay};
       closeModal();
       if(isEdit){
         pWrite('personnel', function(l){ return patchById(l, existing.id, payload); },
@@ -4011,6 +4013,7 @@ td.num{color:var(--fg-muted)}
       detailRow("Görevi", esc(o.role||"—"))+
       detailRow("Tür", pIsStajyer(o)? ("Stajyer"+(o.schoolDay? " · Okul Günü: "+esc(o.schoolDay) : "")) : "Personel")+
       detailRow("Telefon", esc(o.phone||"—"))+
+      detailRow("Ev Adresi", esc(o.address||"—"))+
       detailRow("İşe Başlama", fmtDate(o.startDate))+
       detailRow("İşten Ayrılma", o.endDate? fmtDate(o.endDate) : "—")+
       detailRow("Hizmet Süresi", pTenureStr(o))+
