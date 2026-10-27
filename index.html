@@ -504,7 +504,7 @@ td.num{color:var(--fg-muted)}
 // Yeni sürüm yayınlanınca açık sayfa kendini yeniler (pencere açıkken eski kodla
 // çalışıp "güncellemiyor" demesin). Açık bir form/pencere varsa bekler.
 (function(){
-  var MY = "1791218774";
+  var MY = "1793081384";
   function check(){
     if (document.hidden) return;
     fetch("version.json?t=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
@@ -694,6 +694,7 @@ td.num{color:var(--fg-muted)}
     <div id="stock-items-view" hidden>
       <div class="admin-toolbar">
         <button class="btn" id="btn-back-stock-lists" type="button">‹ Listelere Dön</button>
+        <button class="btn" id="btn-export-stock" type="button">⬇ Excel'e Aktar</button>
         <button class="btn btn-primary" id="btn-new-stock-item" type="button">+ Yeni Kalem</button>
       </div>
       <div class="card">
@@ -2925,6 +2926,41 @@ td.num{color:var(--fg-muted)}
       else runner.addStockItem(getToken(), stkState.currentListId, payload);
     };
   }
+  document.getElementById('btn-export-stock').onclick = function(){
+    var btn = this, old = btn.textContent;
+    var items = (window.__stockItemsCache||[]).filter(function(i){ return String(i.id).indexOf('tmp_')!==0; });
+    if (!items.length) { showToast('Aktarılacak kalem yok.'); return; }
+    btn.disabled = true; btn.textContent = 'Hazırlanıyor…';
+    loadLib(XLSX_URL, 'XLSX', function(){
+      btn.disabled = false; btn.textContent = old;
+      if (typeof XLSX === 'undefined') { showToast('Excel motoru yüklenemedi, tekrar deneyin.'); return; }
+      var header = ['Ürün','Stok No','Marka','Ürün Kodu','Adet','Birim','Min. Adet','Kullanım Adeti (1 Üründe)','Durum'];
+      var rows = items.map(function(it){
+        var crit = it.minAdet !== '' && it.minAdet != null && Number(it.adet) < Number(it.minAdet);
+        var n = function(v){ return (v===''||v==null) ? '' : (isNaN(Number(v)) ? v : Number(v)); };
+        return [it.tanimi||'', it.stokNo||'', it.marka||'', it.urunKodu||'', n(it.adet), it.birim||'Adet', n(it.minAdet), n(it.kullanimAdeti), crit?'Kritik':'Normal'];
+      });
+      var ws = XLSX.utils.aoa_to_sheet([header].concat(rows));
+      ws['!cols'] = header.map(function(h,i){
+        var w = h.length;
+        rows.forEach(function(r){ w = Math.max(w, String(r[i]==null?'':r[i]).length); });
+        return {wch: Math.min(45, w+2)};
+      });
+      var wb = XLSX.utils.book_new();
+      var sheetName = String(stkState.currentListName||'Stok').replace(/[\\\/\?\*\[\]:]/g,' ').substring(0,31) || 'Stok';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      var out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      var blob = new Blob([out], {type:'application/octet-stream'});
+      var d = new Date(), pad = function(x){ return (x<10?'0':'')+x; };
+      var fname = 'stok-' + String(stkState.currentListName||'liste').toLowerCase().replace(/[^a-z0-9ğüşıöç]+/gi,'-').replace(/^-+|-+$/g,'') + '-' + d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate()) + '.xlsx';
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      showToast(items.length + ' kalem Excel olarak indirildi.');
+    });
+  };
   document.getElementById('btn-new-stock-item').onclick = function(){ openStockItemModal(null); };
 
   boot();
